@@ -1,12 +1,12 @@
-# Avior: Compositional framework for Compound AI Systems and "Networks of Networks" (NONs)
+# Ember: Compositional framework for Compound AI Systems and "Networks of Networks" (NONs)
 
 ## 1. Introduction
 
-### What is Avior?
+### What is Ember?
 
-Avior is a Python library for constructing Compound AI Systems and "Networks of Networks" (NONs). Avior aims to provide, for the **NON** construction context, a similar experience to PyTorch/FLAX in the **NN** context. 
+Ember is a Python library for constructing Compound AI Systems and "Networks of Networks" (NONs). Avior aims to provide, for the **NON** construction context, a similar experience to PyTorch/FLAX in the **NN** context. 
 
-The goal of Avior's design is to provide:
+The goal of Ember's design is to provide:
 
 - **The structural and efficiency beniefits**: of JAX/XLA-like graph execution.  
 - **The top-level compositional and eager-mode user experience**: of PyTorch/FLAX.
