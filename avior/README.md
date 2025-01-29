@@ -4,16 +4,16 @@
 
 ### What is Ember?
 
-Ember is a Python library for constructing Compound AI Systems and "Networks of Networks" (NONs). Avior aims to provide, for the **NON** construction context, a similar experience to PyTorch/FLAX in the **NN** context. 
+Ember is a Python library for constructing Compound AI Systems and "Networks of Networks" (NONs). Ember aims to provide, for the **NON** construction context, a similar experience to PyTorch/FLAX in the **NN** context. 
 
 The goal of Ember's design is to provide:
 
 - **The structural and efficiency beniefits**: of JAX/XLA-like graph execution.  
 - **The top-level compositional and eager-mode user experience**: of PyTorch/FLAX.
 
-With Avior, we can compose complex pipelines (a.k.a. "Networks of Networks" architectures) and multi-model, multi-step systems, that both execute efficiently and are easy to read and understand.
+With Ember, we can compose complex pipelines (a.k.a. "Networks of Networks" architectures) and multi-model, multi-step systems, that both execute efficiently and are easy to read and understand.
 
-**Why Avior?**
+**Why Ember?**
 - **Eager Execution**: by default, which AI practitioners accustomed to NN architectures design may find more intuitive (ala PyTorch). 
 
 - **Graph Scheduling** behind the scenes, allowing us to optionally run "fan-out" computations in parallel (ala JAX/XLA, and their transform and concurrency orientation).
@@ -31,30 +31,30 @@ With Avior, we can compose complex pipelines (a.k.a. "Networks of Networks" arch
 
 ### 2. A Quick Example: Composing a Multi-Model Ensemble
 
-Below is a short snippet illustrating Avior's API for assembling a multi-model ensemble.
+Below is a short snippet illustrating Ember's API for assembling a multi-model ensemble.
 
 ```python
 ```
 
-**What’s happening?**
+**What's happening?**
 
 - We fan out (via an ensemble operator) to three different LLMs, each receiving the same query.
-- We then fan in their responses with a JudgeBasedOperator,” (ala `Networks of Networks`) which considers the 'inputs/advise of the ensemble members and outputs a final answer.
-- Under the hood, Avior can run amenable calls in parallel if configured with a concurrency plan—no special code required beyond defining to_plan() for operators or wrapping Operators using a tracer with the @jit decorator.
+- We then fan in their responses with a JudgeBasedOperator, " (ala `Networks of Networks`) which considers the 'inputs/advise of the ensemble members and outputs a final answer.
+- Under the hood, Ember can run amenable calls in parallel if configured with a concurrency plan—no special code required beyond defining to_plan() for operators or wrapping Operators using a tracer with the @jit decorator.
 
-# 3. Core Components of Avior
+# 3. Core Components of Ember
 
-The building blocks of Avior are separated via a '**registry-based**' design for composability.
-You can declare or register your providers and models, giving Avior information about rate-limits, costs, etc so it can optimize (more on this later). You can also declare or register new **Operators**, **Datasets**, **Evaluation Functions**, and **Prompts Signatures** in the `registry` directory.
+The building blocks of Ember are separated via a '**registry-based**' design for composability.
+You can declare or register your providers and models, giving Ember information about rate-limits, costs, etc so it can optimize (more on this later). You can also declare or register new **Operators**, **Datasets**, **Evaluation Functions**, and **Prompts Signatures** in the `registry` directory.
 
 ## 3.1 Model Registry
 
-The Model Registry centralizes all the model configurations and metadata. It's the backbone of Avior's approach to discovering and managing LLM endpoints (like **OpenAI**'s `gpt-4o`, **Anthropic**'s `claude-3.5-sonnet`, **Google**'s `gemini-1.5-pro`, proprietary and OSS models via **IBM WatsonX** or custom/OSS LLMs e.g. served via **Avior**'s serving endpoint's for OSS models like DBRX, Llama, Deepseek, Qwen, etc.)
+The Model Registry centralizes all the model configurations and metadata. It's the backbone of Ember's approach to discovering and managing LLM endpoints (like **OpenAI**'s `gpt-4o`, **Anthropic**'s `claude-3.5-sonnet`, **Google**'s `gemini-1.5-pro`, proprietary and OSS models via **IBM WatsonX** or custom/OSS LLMs e.g. served via **Ember**'s serving endpoint's for OSS models like DBRX, Llama, Deepseek, Qwen, etc.)
 
 ### Key Features
 - **Registration**: You define a ModelInfo object (containing metadata about the cost, rate limits, provider info, and an API key) and pass it to the registry.
 - **Lookup**: You can retrieve models by strine ID or enum or easy referencing in your code. 
-- **Usage Tracking**: Avior can track usage, cost, and latency logs for models and providers, and provide usage summaries.
+- **Usage Tracking**: Ember can track usage, cost, and latency logs for models and providers, and provide usage summaries.
 
 
 #### Example: Registering and using a model
@@ -78,7 +78,7 @@ openai_info = ModelInfo(
 registry.register_model(openai_info)
 
 # Use it
-resp = model_service("openai:gpt-4o", "Hello from Avior!")
+resp = model_service("openai:gpt-4o", "Hello from Ember!")
 print(resp.data)  # LLM response
 ```
 
@@ -87,13 +87,13 @@ print(resp.data)  # LLM response
 ### Concept
 
 While the Model Registry is about storing info, LM Modules are the actual callable objects you use in an operator. Each LM Module:
-- Wraps a specific model from the registry (e.g., “gpt-4o”).
+- Wraps a specific model from the registry (e.g., "gpt-4o").
 - Provides a **unified** `.generate_response(prompt, **kwargs)` or direct `__call__` interface.
 - Optionally sets generation parameters like temperature, max tokens, or persona.
 
 Why Modules?
 - Keep a **uniform calling convention** across many LLMs.
-- **Integrate easily with Avior’s concurrency model** (fan-out calls can just invoke multiple LM Modules in parallel).
+- **Integrate easily with Ember's concurrency model** (fan-out calls can just invoke multiple LM Modules in parallel).
 
 ### Basic Pattern
 
@@ -113,7 +113,7 @@ print("Answer:", result)
 
 ### Where They Shine
 - **Ensembles**: If you want to call the same model multiple times or different models in parallel, create multiple LM Modules.
-- **Chain-of-thought**: If you want to do a multi-step reasoning workflow, you can pass partial outputs into subsequent LM calls, all orchestrated by your Avior operator logic.
+- **Chain-of-thought**: If you want to do a multi-step reasoning workflow, you can pass partial outputs into subsequent LM calls, all orchestrated by your Ember operator logic.
 
 
 # 4. Signatures and `SPECIFICATIONS`
@@ -158,11 +158,11 @@ class CaravanLabelingSignature(Signature):
 ### Benefits
 - **Better debugging**: If you pass the wrong dict shape to an operator, you’ll know immediately.
 - **Future expansions**: This paves the way for advanced transformations or auto-documentation.
-- **DSPy synergy**: In the future, Avior can seamlessly import DSPy “specifications” as Signatures.
+- **DSPy synergy**: In the future, Ember can seamlessly import DSPy "specifications" as Signatures.
 
 # 5. Operators 
 
-Operators are the 'workhorse' components of Avior. If you're familiar with PyTorch, think of them like `nn.Module`s.
+Operators are the 'workhorse' components of Ember. If you're familiar with PyTorch, think of them like `nn.Module`s.
 
 They:
 - Encapsulate an **operator** (e.g., run an LM call, combine multiple output, invoke a tool or function, do text processing, etc.)
@@ -178,15 +178,15 @@ op = NewOperator(lm_modules=[...], signature=)
 ```
 
 2. (Optional) Input validation:
-If there's a signature, Avior checks if the input matches input_model or required_inputs. 
+If there's a signature, Ember checks if the input matches input_model or required_inputs. 
 
 3. Execution:
 - forward (inputs): runs synchronously in python, returns immediate results. 
-- to_plan (inputs): returns an ExecutionPlan if you want Avior's scheduler to handle concurrency and optimize execution. 
+- to_plan (inputs): returns an ExecutionPlan if you want Ember's scheduler to handle concurrency and optimize execution. 
  
 
 5. (Optional) Output validation:
-If there's a structured_output in the signature, Avior attempts to cast/validate the result.
+If there's a structured_output in the signature, Ember attempts to cast/validate the result.
 
 
 ## 5.2 Common Operator Types
@@ -211,7 +211,7 @@ It’s **short**, **explicit**, and **composable**. You can feed multiple model 
 
 # 6. GraphExecution and Scheduling
 
-While operators can run eagerly, Avior also enables **graph-based** orchestration:
+While operators can run eagerly, Ember also enables **graph-based** orchestration:
 - **NoNGraph** structures let you define a set of nodes (each node = an operator) and specify dependencies.
 - Basic default: a **topological sort** ensures each node runs only after its inputs are ready.
 - **Parallel execution** arises naturally for nodes that don’t depend on each other.
@@ -276,7 +276,7 @@ graph_data.add_node(
 )
 
 # 5) Provide the final input to the graph
-input_data = {"query": "Explain how to set up Avior for multi-model parallel usage"}
+input_data = {"query": "Explain how to set up Ember for multi-model parallel usage"}
 
 # 6) Execute the graph
 executor_service = GraphExecutorService()
@@ -293,14 +293,14 @@ print("Final answer from the judge:", results["judge"]["final_answer"])
 
 Key Takeaways
 	•	The code is explicit about how data flows.
-	•	Avior automatically manages concurrency for the fan-out ensemble if you implement or use the operator’s to_plan() method.
-	•	You can easily swap the aggregator with a “MostCommonOperator” or any custom logic.
+	•	Ember automatically manages concurrency for the fan-out ensemble if you implement or use the operator's to_plan() method.
+	•	You can easily swap the aggregator with a "MostCommonOperator" or any custom logic.
 	•	You can nest subgraphs or add more nodes as your pipeline grows in complexity.
 
 
 # Next steps:
 
-In the next sections, we'll cover installation, quickstart instructions, advancd topics (like DSPy-based signature integration and LiteLLM synergy), and details on contributing to Avior's ecosystem.
+In the next sections, we'll cover installation, quickstart instructions, advancd topics (like DSPy-based signature integration and LiteLLM synergy), and details on contributing to Ember's ecosystem.
 
 
 ## Package Structure/'
@@ -325,7 +325,7 @@ avior/
 
 ### Operators
 
-Operators are the fundamental building blocks of NoN systems in Avior. They encapsulate specific AI operations or transformations. Each operator is designed to be simple, explicit, and composable. The `OperatorBase` class serves as the foundation for all operators, analogous to PyTorch's `nn.Module`. This makes Avior structurally familiar to PyTorch users, enhancing approachability and ease of use.
+Operators are the fundamental building blocks of NoN systems in Ember. They encapsulate specific AI operations or transformations. Each operator is designed to be simple, explicit, and composable. The `OperatorBase` class serves as the foundation for all operators, analogous to PyTorch's `nn.Module`. This makes Ember structurally familiar to PyTorch users, enhancing approachability and ease of use.
 
 #### Operator Types
 
@@ -372,7 +372,7 @@ Operators are the fundamental building blocks of NoN systems in Avior. They enca
 
 ### NoNGraph
 
-The `NoNGraph` class is the core abstraction in Avior's compositional architecture. It allows you to define complex AI systems by connecting operators in a flexible, graph-like structure. This approach enables the creation of sophisticated AI pipelines while maintaining simplicity and explicitness in the design.
+The `NoNGraph` class is the core abstraction in Ember's compositional architecture. It allows you to define complex AI systems by connecting operators in a flexible, graph-like structure. This approach enables the creation of sophisticated AI pipelines while maintaining simplicity and explicitness in the design.
 
 ## Usage Examples
 
@@ -401,7 +401,7 @@ This composition illustrates how you can build compound AI systems from simple, 
 
 ### Alternative Definition Using Shorthand
 
-Avior offers a more concise string-based shorthand for defining graphs:
+Ember offers a more concise string-based shorthand for defining graphs:
 
 ```python
 def define_non_graph():
@@ -459,17 +459,17 @@ def define_multi_model_non_graph():
 
 ## Design Philosophy
 
-Avior's API is inspired by PyTorch's principles, emphasizing:
+Ember's API is inspired by PyTorch's principles, emphasizing:
 
-1. **Composability**: Like `nn.Module`, Avior's Operators and NoNGraphs are designed to be easily composable, enabling complex AI systems from simple parts.
+1. **Composability**: Like `nn.Module`, Ember's Operators and NoNGraphs are designed to be easily composable, enabling complex AI systems from simple parts.
 
 2. **Extensibility**: The registry-based approach allows effortless addition of new operators, models, datasets, evaluation functions, and prompts without changing core code.
 
 3. **Usability**: Prioritizes explicitness and clarity over implicit, "magical" functionality. While this may require more explicit code, it makes the system easier to understand, debug, and maintain.
 
-4. **Simple Over Easy**: Following PyTorch and the Zen of Python, Avior opts for explicit and understandable building blocks rather than highly abstracted or opinionated APIs.
+4. **Simple Over Easy**: Following PyTorch and the Zen of Python, Ember opts for explicit and understandable building blocks rather than highly abstracted or opinionated APIs.
 
-### Avior’s Goals
+### Ember's Goals
 
 - Provide a compositional, extensible framework for building NoN compound AI systems.
 - Offer a structure familiar to researchers and developers with PyTorch experience.
@@ -478,7 +478,7 @@ Avior's API is inspired by PyTorch's principles, emphasizing:
 
 ## Extensibility
 
-Avior is designed with extensibility in mind:
+Ember is designed with extensibility in mind:
 
 - **Datasets**: Add new datasets by creating custom parsers and registering them in `dataset_registry.py`.
 - **Operators**: Create new operators by subclassing `OperatorBase` and registering them in `operator_registry.py`.
@@ -488,7 +488,7 @@ Avior is designed with extensibility in mind:
 
 ## Models
 
-Avior supports multiple model providers and model types via `ModelRegistry`:
+Ember supports multiple model providers and model types via `ModelRegistry`:
 
 ### Supported/Planned Model Types
 
@@ -517,7 +517,7 @@ ModelRegistry.register_model(custom_model_info, CustomModelImplementation)
 
 ## Conclusion
 
-Avior provides a compositional, extensible framework for building NoN compound AI systems. By following design principles akin to PyTorch, it offers a familiar and approachable structure for researchers and developers. Emphasizing explicit building blocks makes systems more understandable and manageable, even as they scale in complexity. With Avior, you can experiment with multiple models, operators, and consensus mechanisms, potentially improving the robustness and accuracy of AI-driven applications.
+Ember provides a compositional, extensible framework for building NoN compound AI systems. By following design principles akin to PyTorch, it offers a familiar and approachable structure for researchers and developers. Emphasizing explicit building blocks makes systems more understandable and manageable, even as they scale in complexity. With Ember, you can experiment with multiple models, operators, and consensus mechanisms, potentially improving the robustness and accuracy of AI-driven applications.
 
 # Quick Start
 
