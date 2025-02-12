@@ -5,7 +5,6 @@ from src.avior.registry.prompt_signature.signatures import Signature
 class HallucinationInputs(BaseModel):
     query: str
     choices: Dict[str, str]
-    metadata: Dict[str, Any]
 
 class HallucinationOutputs(BaseModel):
     judgement: str
@@ -13,14 +12,13 @@ class HallucinationOutputs(BaseModel):
 class QAHallucinationSignature(Signature):
     def __init__(self):
         super().__init__(
-            required_inputs=["query", "choices", "metadata"],
+            required_inputs=["query", "choices"],
             input_model=HallucinationInputs,
             output_model=HallucinationOutputs,
-            prompt_template="""You are a hallucination detector. You MUST determine if the provided answer contains hallucination or not for the question based on world knowledge. The answer you provide MUST be "Yes" or "No".
+            prompt_template="""You are a hallucination detector. You MUST determine if the provided answer contains hallucination or not for the question based on world knowledge. The answer you provide MUST be in the provided choices. Only use the letter of the choice you choose.
 
 #Question#: {query}
 #Choices#: {choices}
-#Metadata#: {metadata}
 #Your Judgement#:"""
         )
 

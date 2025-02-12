@@ -37,9 +37,9 @@ class HallucinationDetectorOperator(Operator[HallucinationInputs, HallucinationO
 
         print("Judgements: ", judgements)
         # Majority vote (FAN_IN operation)
-        yes_count = sum(1 for j in judgements if "Yes" in j)
-        no_count = sum(1 for j in judgements if "No" in j)
-        final_judgement = "Hallucinated" if yes_count > no_count else "Not Hallucinated"
+        yes_count = sum(1 for j in judgements if "B" in j)
+        no_count = sum(1 for j in judgements if "A" in j)
+        final_judgement = "B" if yes_count > no_count else "A"
 
         return HallucinationOutputs(
             judgement=final_judgement,
