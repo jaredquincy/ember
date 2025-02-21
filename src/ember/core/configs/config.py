@@ -199,9 +199,9 @@ def auto_register_known_models(
         None
     """
     local_logger: logging.Logger = config_manager.logger
-    from src.ember.core.registry.model.core.schemas.model_info import ModelInfo
-    from src.ember.core.registry.model.core.schemas.provider_info import ProviderInfo
-    from src.ember.core.registry.model.core.schemas.cost import ModelCost, RateLimit
+    from src.ember.core.registry.model.schemas.model_info import ModelInfo
+    from src.ember.core.registry.model.schemas.provider_info import ProviderInfo
+    from src.ember.core.registry.model.schemas.cost import ModelCost, RateLimit
 
     known_model_id: str = "openai:gpt-4o"
     if registry.get_model(model_id=known_model_id) is None:
