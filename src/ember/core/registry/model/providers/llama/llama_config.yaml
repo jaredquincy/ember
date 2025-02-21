@@ -1,0 +1,31 @@
+models:
+  - id: llama-2-7b
+    display_name: Llama 2 7B
+    context_length: 4096
+    description: "Open source 7B parameter Llama 2 model"
+    model_family: llama
+    provider: llama
+    requires_model_path: true
+    requires_api_key: false
+    
+  - id: llama-2-13b
+    display_name: Llama 2 13B
+    context_length: 4096
+    description: "Open source 13B parameter Llama 2 model"
+    model_family: llama
+    provider: llama
+    requires_model_path: true
+    requires_api_key: false
+
+provider_config:
+  name: llama
+  display_name: Llama Models
+  description: "Local inference using Llama models via llama.cpp"
+  requires_api_key: false
+  requires_model_path: true
+  default_parameters:
+    temperature: 0.7
+    max_tokens: 512
+    top_p: 0.95
+    n_ctx: 4096
+    n_threads: 4 

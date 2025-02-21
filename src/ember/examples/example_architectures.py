@@ -16,14 +16,14 @@ class SubNetwork(Operator[Dict[str, Any], Dict[str, Any]]):
     """
 
     signature: Signature = Signature(input_model=None)
-    ensemble: non.Ensemble
-    refine: non.SelfRefinement
+    ensemble: non.UniformEnsemble # replaced Ensemble with UniformEnsemble
+    refine: non.JudgeSynthesis # replaced SelfRefinement with JudgeSynthesis
 
     def __init__(self) -> None:
         """Initializes the SubNetwork with a specified ensemble and self-refinement components."""
         super().__init__()
-        self.ensemble = non.Ensemble(num_units=2, model_name="gpt-4o")
-        self.refine = non.SelfRefinement(model_name="gpt-4o")
+        self.ensemble = non.UniformEnsemble(num_units=2, model_name="gpt-4o", temperature=1.0)
+        self.refine = non.JudgeSynthesis(model_name="gpt-4o")
 
     def forward(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
         """Processes the input through the ensemble and applies self-refinement.
@@ -57,14 +57,14 @@ class NestedNetwork(Operator[Dict[str, Any], Dict[str, Any]]):
     signature: Signature = Signature(input_model=None)
     sub1: SubNetwork
     sub2: SubNetwork
-    judge: non.Judge
+    judge: non.JudgeSynthesis
 
     def __init__(self) -> None:
         """Initializes the NestedNetwork with two SubNetwork instances and a final Judge operator."""
         super().__init__()
         self.sub1 = SubNetwork()
         self.sub2 = SubNetwork()
-        self.judge = non.Judge(model_name="gpt-4o")
+        self.judge = non.JudgeSynthesis(model_name="gpt-4o")
 
     def forward(self, inputs: Dict[str, Any]) -> Dict[str, Any]:
         """Executes the nested network by processing inputs through sub-networks and aggregating responses.

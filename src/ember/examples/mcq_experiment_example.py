@@ -27,11 +27,10 @@ from pydantic import BaseModel
 from prettytable import PrettyTable
 
 # ember imports: use only the typed pipeline definitions (avoid direct registry references).
-from src.ember.core.non import Ensemble, JudgeSynthesis
-from src.ember.core.registry.model.registry.model_registry import get_model_registry
+from src.ember.core.non import UniformEnsemble as Ensemble, JudgeSynthesis
 from src.ember.core import non
-from src.ember.core.registry.model.registry.model_registry import GLOBAL_MODEL_REGISTRY
-from src.ember.core.configs.config import CONFIG, initialize_system
+from src.ember.core.registry.model.registry.model_registry import ModelRegistry
+from src.ember.core.configs.config import ConfigManager, initialize_system
 
 # For dataset usage:
 from src.ember.core.utils.data.base.models import DatasetEntry
@@ -43,14 +42,13 @@ from src.ember.core.utils.data.base.loaders import HuggingFaceDatasetLoader
 from src.ember.core.utils.data.base.samplers import DatasetSampler
 from src.ember.core.utils.data.base.validators import DatasetValidator
 from src.ember.core.utils.data.initialization import initialize_dataset_registry
-from src.ember.xcs.scheduler import ExecutionPlan
-from src.ember.core.registry.operator.base.operator_base import (
-    LMModule,
-    Operator,
-    OperatorMetadata,
-)
+from src.ember.xcs.engine.xcs_engine import XCSPlan
+
+from src.ember.core.registry.model.modules.lm import LMModule
+from src.ember.core.registry.operator.base.operator_base import Operator, OperatorMetadata # No class defined as OperatorMetaData, cannot find related class
+from src.ember.core.registry.model.modules.lm import LMModuleConfig  
 from src.ember.core.registry.prompt_signature.signatures import Signature
-from src.ember.core.registry.model.modules.lm import LMModuleConfig
+from src.ember.xcs.graph.xcs_graph import XCSGraph
 
 # ADD the execute_graph import:
 from src.ember.xcs.engine.xcs_engine import execute_graph
@@ -91,7 +89,7 @@ class EnsureValidChoiceOperator(Operator[EnsureValidChoiceInputs, Dict[str, Any]
     using a language model (LM) fallback mechanism.
     """
 
-    metadata: OperatorMetadata = OperatorMetadata(
+    metadata: OperatorMetadata = OperatorMetadata( # No class defined as OperatorMetaData
         code="ENSURE_VALID_CHOICE",
         description="Refines or validates that final_answer is one of the valid choices, or tries to fix it via LM.",
         signature=EnsureValidChoiceSignature(),
@@ -170,7 +168,7 @@ class EnsureValidChoiceOperator(Operator[EnsureValidChoiceInputs, Dict[str, Any]
             f"to any valid choice {list(inputs.choices.keys())} after {self._max_retries} attempts."
         )
 
-    def to_plan(self, inputs: EnsureValidChoiceInputs) -> Optional[ExecutionPlan]:
+    def to_plan(self, inputs: EnsureValidChoiceInputs) -> Optional[XCSPlan]:
         """Generates an execution plan if applicable.
 
         Args:
@@ -215,7 +213,7 @@ class SingleModelBaseline(
       3. EnsureValidChoiceOperator to validate the answer.
     """
 
-    metadata: OperatorMetadata = OperatorMetadata(
+    metadata: OperatorMetadata = OperatorMetadata( # No class defined as OperatorMetaData
         code="SINGLE_MODEL_BASELINE",
         description="One-LM baseline with EnsureValidChoice.",
         signature=SingleModelBaselineSignature(),
@@ -309,7 +307,7 @@ class MultiModelEnsemble(
       4. EnsureValidChoiceOperator to verify the final answer.
     """
 
-    metadata: OperatorMetadata = OperatorMetadata(
+    metadata: OperatorMetadata = OperatorMetadata( # No class defined as OperatorMetaData
         code="MULTI_MODEL_ENSEMBLE",
         description="Multi-model ensemble aggregator with judge step.",
         signature=MultiModelEnsembleSignature(),
@@ -410,7 +408,7 @@ class VariedModelEnsemble(
       4. EnsureValidChoiceOperator to validate the final answer.
     """
 
-    metadata: OperatorMetadata = OperatorMetadata(
+    metadata: OperatorMetadata = OperatorMetadata( # No class defined as OperatorMetaData
         code="VARIED_MODEL_ENSEMBLE",
         description=(
             "Multi-model pipeline aggregator with judge step, using VariedEnsemble for step #1."
@@ -482,7 +480,7 @@ class VariedModelEnsemble(
 ###############################################################################
 # 3) Build each pipeline as a one-node OperatorGraph
 ###############################################################################
-def build_pipeline_graph(pipeline_op: non.Operator) -> OperatorGraph:
+def build_pipeline_graph(pipeline_op: non.Operator) -> XCSGraph:
     """Wraps a single pipeline operator in an OperatorGraph.
 
     Args:
@@ -491,7 +489,7 @@ def build_pipeline_graph(pipeline_op: non.Operator) -> OperatorGraph:
     Returns:
         An OperatorGraph instance containing the given pipeline as a node.
     """
-    graph: OperatorGraph = OperatorGraph()
+    graph: XCSGraph = XCSGraph()
     graph.add_node(pipeline_op, node_id=pipeline_op.name)
     return graph
 
@@ -532,8 +530,9 @@ def parse_arguments() -> argparse.Namespace:
 def setup_openai_api_key() -> None:
     """Sets up the OpenAI API key from environment variables if available."""
     api_key: Optional[str] = os.environ.get("OPENAI_API_KEY")
+    config_manager = ConfigManager()  # Create a new config manager instance
     if api_key:
-        CONFIG.set("models", "openai_api_key", api_key)
+        config_manager.set("models", "openai_api_key", api_key)
         logging.info("OpenAI API key set from environment.")
     else:
         logging.warning("No OPENAI_API_KEY found; continuing without it.")
@@ -545,7 +544,8 @@ def main() -> None:
     args: argparse.Namespace = parse_arguments()
 
     # Initialize the system with the global model registry.
-    initialize_system(registry=GLOBAL_MODEL_REGISTRY)
+    registry = ModelRegistry()  # Create a new registry instance
+    initialize_system(registry=registry)
     setup_openai_api_key()
 
     # Initialize the MMLU dataset environment.
@@ -596,9 +596,9 @@ def main() -> None:
         ]
     )
 
-    baseline_graph: OperatorGraph = build_pipeline_graph(pipeline_op=baseline_op)
-    ensemble_graph: OperatorGraph = build_pipeline_graph(pipeline_op=ensemble_op)
-    varied_graph: OperatorGraph = build_pipeline_graph(pipeline_op=varied_op)
+    baseline_graph: XCSGraph = build_pipeline_graph(pipeline_op=baseline_op)
+    ensemble_graph: XCSGraph = build_pipeline_graph(pipeline_op=ensemble_op)
+    varied_graph: XCSGraph = build_pipeline_graph(pipeline_op=varied_op)
 
     def score_single_entry(index: int, entry: DatasetEntry) -> Tuple[int, int, int]:
         """Scores a single dataset entry using all three pipelines.
