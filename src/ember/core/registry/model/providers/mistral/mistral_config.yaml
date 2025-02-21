@@ -1,0 +1,30 @@
+models:
+  - id: mistral-7b
+    display_name: Mistral 7B
+    context_length: 8192
+    description: "Open source 7B parameter Mistral model"
+    model_family: mistral
+    provider: mistral
+    requires_model_path: true
+    requires_api_key: false
+    
+  - id: mistral-7b-instruct
+    display_name: Mistral 7B Instruct
+    context_length: 8192
+    description: "Instruction-tuned version of Mistral 7B"
+    model_family: mistral
+    provider: mistral
+    requires_model_path: true
+    requires_api_key: false
+
+provider_config:
+  name: mistral
+  display_name: Mistral Models
+  description: "Local inference using Mistral models via transformers"
+  requires_api_key: false
+  requires_model_path: true
+  default_parameters:
+    temperature: 0.7
+    max_tokens: 512
+    top_p: 0.95
+    max_length: 8192 

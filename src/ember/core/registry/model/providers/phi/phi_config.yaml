@@ -1,0 +1,31 @@
+models:
+  - id: phi-2
+    display_name: Phi-2
+    context_length: 2048
+    description: "Microsoft's 2.7B parameter Phi-2 model"
+    model_family: phi
+    provider: phi
+    requires_model_path: true
+    requires_api_key: false
+    
+  - id: phi-1.5
+    display_name: Phi-1.5
+    context_length: 2048
+    description: "Microsoft's 1.3B parameter Phi-1.5 model"
+    model_family: phi
+    provider: phi
+    requires_model_path: true
+    requires_api_key: false
+
+provider_config:
+  name: phi
+  display_name: Phi Models
+  description: "Local inference using Microsoft's Phi models via transformers"
+  requires_api_key: false
+  requires_model_path: true
+  default_parameters:
+    temperature: 0.7
+    max_tokens: 512
+    top_p: 0.95
+    max_length: 2048
+    repetition_penalty: 1.1 
