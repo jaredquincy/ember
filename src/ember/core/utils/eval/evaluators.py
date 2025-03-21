@@ -7,6 +7,9 @@ from typing import Any, Callable, Dict, Generic, List, Optional, TypeVar, Union
 from .base_evaluator import EvaluationResult, IEvaluator
 from .extractors import RegexExtractor
 
+from diversity import compression_ratio
+import Levenshtein
+
 T_out = TypeVar("T_out")
 T_truth = TypeVar("T_truth")
 
@@ -201,6 +204,79 @@ class CodeExecutionEvaluator(IEvaluator[str, str]):
 
 
 # Composite Evaluator Example
+
+class CosineSimilarityScoringEvaluator(IEvaluator[List[str], None]):
+    """
+    Evaluator to test ensemble outputs -> score them (float)
+    """
+    def evaluate(
+            self, 
+            system_output: List[str], 
+            **kwargs) -> EvaluationResult:
+        if system_output is None or len(system_output) == 0:
+            return EvaluationResult(is_correct=False, score=-1)
+
+        # example I was thinking about:
+        letter_sum = sum(len(response) for response in system_output)
+        ratio = compression_ratio(system_output) * min(1, len(system_output)/5) * min(1, letter_sum/100)
+
+        return EvaluationResult(is_correct=True, 
+                                score=ratio, 
+                                metadata = {'responses': system_output})
+
+
+class CompressionRatioDiversityEvaluator(IEvaluator[List[str], None]):
+    """
+    Evaluator to test ensemble outputs -> score them (float)
+    """
+    def evaluate(
+            self, 
+            system_output: List[str], 
+            **kwargs) -> EvaluationResult:
+        if system_output is None or len(system_output) == 0:
+            return EvaluationResult(is_correct=False, score=-1)
+
+        # example I was thinking about:
+        letter_sum = sum(len(response) for response in system_output)
+        ratio = compression_ratio(system_output) * min(1, len(system_output)/5) * min(1, letter_sum/100)
+
+        return EvaluationResult(is_correct=True, 
+                                score=ratio, 
+                                metadata = {'responses': system_output})
+    
+
+class EditDistanceScoringEvaluator:
+
+    def evaluate(
+            self, 
+            system_output: List[str], 
+            **kwargs) -> EvaluationResult:
+        if system_output is None or len(system_output) == 0:
+            return EvaluationResult(is_correct=False, score=-1, metadata={})
+
+        diversity_score = self.compute_distance(system_output)
+
+        return EvaluationResult(is_correct=True, 
+                                score=diversity_score, 
+                                metadata = {'responses': system_output})
+
+    def compute_distance(self, outputs: List[str]) -> float:
+        n = len(outputs)
+        if n < 2:
+            return 0.0
+
+        total_distance = 0
+        pairs = 0
+
+        for i in range(n):
+            for j in range(i + 1, n):
+                dist = Levenshtein.distance(outputs[i], outputs[j])
+                max_len = max(len(outputs[i]), len(outputs[j]))
+                normalized_dist = dist / max_len if max_len > 0 else 0 
+                total_distance += normalized_dist
+                pairs += 1
+        
+        return total_distance / pairs if pairs > 0 else 0.0
 
 
 class PartialRegexEvaluator(ComposedEvaluator[str, str]):

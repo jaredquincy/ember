@@ -57,6 +57,28 @@ class MockEmbeddingModel:
         return [ord(ch) / 256.0 for ch in text]
 
 
+class OpenAITextEmbedding3(Protocol):
+    """Interface for embedding models.
+
+    This protocol defines the minimal interface required to compute a text
+    embedding. Implementations may use local models, external APIs, or custom
+    neural networks.
+
+    Methods:
+        embed_text: Compute the embedding for a given text.
+    """
+
+    def embed_text(self, text: str) -> List[float]:
+        """Computes the embedding vector for the provided text.
+
+        Args:
+            text (str): The text to be embedded.
+
+        Returns:
+            List[float]: A list of floats representing the embedding vector.
+        """
+        
+
 ################################################################
 # 2) Similarity Metric Interface & Implementations
 ################################################################
