@@ -326,6 +326,9 @@ class OpenAIModel(BaseProviderModel):
             logger.debug("Removing 'temperature' parameter for model: %s", model_name)
             kwargs.pop("temperature")
         return kwargs
+    
+    def _is_embedding_model(self, model_name: str) -> bool:
+        return model_name.startswith("text-embedding-")
 
     @retry(
         wait=wait_exponential(min=1, max=10), stop=stop_after_attempt(3), reraise=True
@@ -384,19 +387,33 @@ class OpenAIModel(BaseProviderModel):
         )
 
         try:
-            # Use the timeout parameter from the request or the default from BaseChatParameters
-            timeout = openai_kwargs.pop("timeout", 30)
-            response: Any = self.client.chat.completions.create(
-                model=self.model_info.name,
-                timeout=timeout,
-                **openai_kwargs,
-            )
-            content: str = response.choices[0].message.content.strip()
-            usage_stats = self.usage_calculator.calculate(
-                raw_output=response,
-                model_info=self.model_info,
-            )
-            return ChatResponse(data=content, raw_output=response, usage=usage_stats)
+            if self._is_embedding_model(self.model_info.name):
+                response: Any = self.client.embeddings.create(
+                    model=self.model_info.name,
+                    input=request.prompt,
+                    timeout=30,
+                )
+                embedding = response.data[0].embedding
+                usage_stats = self.usage_calculator.calculate(
+                    raw_output=response,
+                    model_info=self.model_info,
+                )
+
+                return ChatResponse(data="", embedding=embedding, raw_output=response, usage=usage_stats)
+            else:
+                # Use the timeout parameter from the request or the default from BaseChatParameters
+                timeout = openai_kwargs.pop("timeout", 30)
+                response: Any = self.client.chat.completions.create(
+                    model=self.model_info.name,
+                    timeout=timeout,
+                    **openai_kwargs,
+                )
+                content: str = response.choices[0].message.content.strip()
+                usage_stats = self.usage_calculator.calculate(
+                    raw_output=response,
+                    model_info=self.model_info,
+                )
+                return ChatResponse(data=content, raw_output=response, usage=usage_stats)
         except HTTPError as http_err:
             if 500 <= http_err.response.status_code < 600:
                 logger.error("OpenAI server error: %s", http_err)
