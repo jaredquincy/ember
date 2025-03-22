@@ -13,43 +13,62 @@ This guide provides detailed instructions for installing Ember in different envi
 
 [uv](https://astral.sh/uv) is the recommended package manager for Ember. It is extremely fast (10-100x faster than pip) and simplifies Python environment management.
 
-1. **Install uv** if you don't have it already:
+(1) **Install uv** if you don't have it already:
+
+=== "macOS and Linux"
+
+      ```bash
+      # On macOS and Linux
+      curl -LsSf https://astral.sh/uv/install.sh | sh
+      ```
+
+=== "Windows"
+
+      ```bash
+      # On Windows
+      powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+      ```
+
+=== "pip"
+
+      ```bash
+      # Or with pip if you prefer
+      pip install uv
+      ```
+
+Verify the installation
+
    ```bash
-   # On macOS and Linux
-   curl -LsSf https://astral.sh/uv/install.sh | sh
-   
-   # On Windows
-   powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
-   
-   # Or with pip if you prefer
-   pip install uv
-   
    # Verify the installation
    uv --version
    ```
 
-2. **Install Ember from PyPI**:
-   ```bash
-   # Install Ember directly (creates a virtual environment automatically if needed)
-   uv pip install ember-ai
-   
-   # Run examples without activating an environment
-   uv run python -c "import ember; print(ember.__version__)"
-   ```
+(2) **Install Ember**
 
-3. **Install from source**:
-   ```bash
-   # Clone the repository
-   git clone https://github.com/pyember/ember.git
-   cd ember
-   
-   # Install in development mode (editable installation)
-   uv pip install -e "."
-   
-   # Run examples directly without environment activation
-   uv run python src/ember/examples/basic/minimal_example.py
-   ```
-   
+=== "From PyPI"
+
+      ```bash
+      # Install Ember directly (creates a virtual environment automatically if needed)
+      uv pip install ember-ai
+
+      # Run examples without activating an environment
+      uv run python -c "import ember; print(ember.__version__)"
+      ```
+
+=== "From Source"
+
+      ```bash
+      # Clone the repository
+      git clone https://github.com/pyember/e mber.git
+      cd ember
+
+      # Install in development mode (editable installation)
+      uv pip install -e "."
+
+      # Run examples directly without environment activation
+      uv run python src/ember/examples/basic/minimal_example.py
+      ```
+
    By default, this installs Ember with OpenAI, Anthropic, and Google/Deepmind provider support.
 
 ### Method 2: Development Installation with uv
