@@ -264,8 +264,11 @@ def register(
 
 
 # Initialize the registry with core datasets
-def initialize_registry() -> None:
-    """Initialize the dataset registry with core datasets."""
+def initialize_registry(skip_dataset_discovery: bool = False) -> None:
+    """Initialize the dataset registry with core datasets.
+    Args:
+        skip_dataset_discovery: If True, skips automatic discovery of datasets.
+    """
     # Register core datasets from legacy registry
     from ember.core.utils.data.datasets_registry import (
         commonsense_qa,
@@ -317,4 +320,5 @@ def initialize_registry() -> None:
     )
 
     # Discover datasets in the ember.data.datasets package
-    UNIFIED_REGISTRY.discover_datasets()
+    if not skip_dataset_discovery:
+        UNIFIED_REGISTRY.discover_datasets()
