@@ -20,6 +20,8 @@ from ember.core.registry.model.providers.base_discovery import (
 
 # Module-level logger.
 logger = logging.getLogger(__name__)
+# Set default log level to WARNING to reduce verbosity
+logger.setLevel(logging.WARNING)
 
 
 class OpenAIDiscovery(BaseDiscoveryProvider):
@@ -161,8 +163,8 @@ class OpenAIDiscovery(BaseDiscoveryProvider):
             Dict[str, Any]: A dictionary containing the standardized model details.
         """
         return {
-            "model_id": model_id,
-            "model_name": model_data.get("id", ""),
+            "id": model_id,
+            "name": model_data.get("id", ""),
             "api_data": model_data,
         }
 

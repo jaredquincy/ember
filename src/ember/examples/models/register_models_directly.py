@@ -2,6 +2,18 @@
 
 This script registers models directly to the registry without using environment variables.
 It demonstrates the new simplified API for model registration.
+
+To run:
+    uv run python src/ember/examples/models/register_models_directly.py
+
+    # Or if in the virtual env
+    python src/ember/examples/models/register_models_directly.py
+
+Required environment variables:
+    OPENAI_API_KEY (optional): Your OpenAI API key for registering OpenAI models
+    ANTHROPIC_API_KEY (optional): Your Anthropic API key for registering Anthropic models
+
+Note: If your env variables are not set, you can also edit this file to add your API keys directly.
 """
 
 import logging
@@ -65,8 +77,13 @@ def register_openai_models(api_key: str, registry: ModelRegistry) -> List[str]:
     # Register the models
     registered_ids = []
     for model_info in model_infos:
-        registry.register_model(model_info=model_info)
-        logger.info(f"Registered model: {model_info.id}")
+        if not registry.is_registered(model_info.id):
+            registry.register_model(model_info=model_info)
+            logger.info(f"Registered model: {model_info.id}")
+        else:
+            logger.info(
+                f"Model {model_info.id} already registered ✅ - using existing registration"
+            )
         registered_ids.append(model_info.id)
 
     return registered_ids
@@ -119,8 +136,13 @@ def register_anthropic_models(api_key: str, registry: ModelRegistry) -> List[str
     # Register the models
     registered_ids = []
     for model_info in model_infos:
-        registry.register_model(model_info=model_info)
-        logger.info(f"Registered model: {model_info.id}")
+        if not registry.is_registered(model_info.id):
+            registry.register_model(model_info=model_info)
+            logger.info(f"Registered model: {model_info.id}")
+        else:
+            logger.info(
+                f"Model {model_info.id} already registered ✅ - using existing registration"
+            )
         registered_ids.append(model_info.id)
 
     return registered_ids

@@ -15,11 +15,11 @@ from ember.core.registry.model.providers.base_discovery import (
 from ember.core.registry.model.providers.deepmind.deepmind_discovery import (
     DeepmindDiscovery,
 )
-from ember.core.registry.model.providers.openai.openai_discovery import (
-    OpenAIDiscovery,
-)
+from ember.core.registry.model.providers.openai.openai_discovery import OpenAIDiscovery
 
 logger: logging.Logger = logging.getLogger(__name__)
+# Set default log level to WARNING to reduce verbosity
+logger.setLevel(logging.WARNING)
 
 
 class ModelDiscoveryService:
@@ -281,7 +281,7 @@ class ModelDiscoveryService:
                         merged_data["provider"]["default_api_key"] = api_key
             else:
                 # For discovered models not in local config, create reasonable defaults
-                logger.warning(
+                logger.debug(
                     "Model %s discovered via API but not in local config; using defaults with environment API key.",
                     model_id,
                 )

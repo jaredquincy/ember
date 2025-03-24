@@ -34,7 +34,6 @@ This guide provides detailed instructions for installing Ember in different envi
    uv pip install ember-ai
    
    # Run examples without activating an environment
-   uv run python -c "import ember; print(ember.__version__)"
    ```
 
 3. **Install from source**:
@@ -184,6 +183,14 @@ uv pip install -e "." --no-cache
 # Install with specific package versions if needed
 uv pip install -e "." --no-deps
 uv pip install "specific-package==version"
+```
+
+### Other Known Installation Issue Resolutions
+
+When using conda with or without uv, you may encounter known pyarrow installation issues.
+```
+# Try installing pyarrow from conda-forge
+conda install -c conda-forge pyarrow
 ```
 
 ## Testing Your Installation
