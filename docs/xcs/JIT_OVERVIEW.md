@@ -153,8 +153,6 @@ Future improvements to the JIT system include:
 4. Enhanced data dependency analysis
 5. Advanced caching and plan reuse
 
-See `src/ember/xcs/tracer/PROPOSED_IMPROVEMENTS.md` for detailed plans.
-
 ## Examples
 
 For practical demonstrations of these approaches, see:
