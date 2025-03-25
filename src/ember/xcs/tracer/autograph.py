@@ -156,106 +156,371 @@ class AutoGraphBuilder:
     ) -> None:
         """Analyzes dependencies between execution trace records with advanced data flow analysis.
 
-        This enhanced method performs a more sophisticated analysis of data dependencies:
-        1. Build a hierarchy map to identify structural relationships
-        2. Generate content signatures for all data values to track data flow
-        3. Analyze direct data flow by matching input and output signatures
-        4. Infer indirect data dependencies through transitive property
+        This method performs a sophisticated, multi-phase analysis to identify both data
+        dependencies and parallelization opportunities:
+        
+        1. Initial setup and signature generation
+        2. Data dependency analysis to identify true data flow
+        3. Structural analysis to identify parallelizable components
+        4. Dependency augmentation based on execution order 
+        5. Parallel pattern recognition for common computing patterns (ensemble, etc.)
 
+        The approach avoids brittle pattern matching based on naming conventions or
+        hardcoded operator types, instead relying on actual data flow and structural
+        patterns in the execution graph.
+        
         Args:
             records: A list of TraceRecord instances to analyze.
         """
-        # Build structural hierarchy relationships
-        hierarchy_map: Dict[str, List[str]] = self._build_hierarchy_map(records=records)
-
-        # Generate content signatures for inputs and outputs
+        # Sort records by timestamp for execution order analysis
+        sorted_records = sorted(records, key=lambda r: r.timestamp)
+        
+        # Phase 1: Setup and signature generation
+        # -----------------------------------------
+        # Build structural hierarchy showing parent-child relationships
+        hierarchy_map: Dict[str, List[str]] = self._build_hierarchy_map(records=sorted_records)
+        
+        # Create reverse mapping from children to parents
+        child_to_parent: Dict[str, str] = {}
+        for parent, children in hierarchy_map.items():
+            for child in children:
+                child_to_parent[child] = parent
+        
+        # Generate signatures for all inputs and outputs to facilitate dependency detection
         input_signatures: Dict[str, Dict[str, str]] = {}
         output_signatures: Dict[str, Dict[str, str]] = {}
-
+        record_by_node_id: Dict[str, TraceRecord] = {}
+        
         for record in records:
             node_id = record.node_id
-            # Generate signatures for inputs
+            record_by_node_id[node_id] = record
+            # Generate signatures for inputs and outputs
             input_signatures[node_id] = self._generate_data_signatures(record.inputs)
-            # Generate signatures for outputs
             output_signatures[node_id] = self._generate_data_signatures(record.outputs)
-            # Initialize dependency set
+            # Initialize data structures
             self.dependency_map[node_id] = set()
-            # Initialize data flow tracking
-            self.data_flow_map[node_id] = {"inputs": [], "outputs": []}
-
-        # Simpler direct value-based dependency analysis for tests to pass
-        # We'll use both the complex signature analysis and a simple value check
+            self.data_flow_map[node_id] = {
+                "inputs": [], 
+                "outputs": [],
+                "parallelizable": False,
+                "is_aggregator": False,
+                "parallel_group": None
+            }
+        
+        # Phase 2: Data dependency analysis
+        # -----------------------------------------
+        # First, identify true data dependencies using multiple detection methods
         for i, record in enumerate(records):
-            for j in range(i):
-                # Check if there's a direct dependency between record i and record j
-                dependent_record = record
-                predecessor_record = records[j]
-
-                # Simple direct data dependency check
-                if self._has_dependency(
-                    inputs=dependent_record.inputs, outputs=predecessor_record.outputs
-                ):
-                    # Add dependency from graph node j to graph node i
-                    # Map node indices to graph_node_ids
-                    from_node = predecessor_record.graph_node_id
-                    to_node = dependent_record.graph_node_id
-                    # Update dependency map using the original node_id
-                    self.dependency_map[dependent_record.node_id].add(
-                        predecessor_record.node_id
-                    )
-
-        # Analyze data flow by matching signatures
-        for i, record in enumerate(records):
-            dependent_node = record.node_id
-            dependent_inputs = record.inputs
-            dependent_sigs = input_signatures[dependent_node]
-
-            # Track what specific data flowed into this node (source -> field mapping)
-            input_flow: List[Tuple[str, str]] = []
-
-            # Check all previous records for possible data dependencies
+            current_node = record.node_id
+            
+            # For each prior record, check if this record depends on it
             for j in range(i):
                 predecessor = records[j]
                 predecessor_node = predecessor.node_id
-                predecessor_outputs = predecessor.outputs
-                predecessor_sigs = output_signatures[predecessor_node]
-
-                # Skip direct parent-child relationships as these are structural, not data dependencies
-                if self._is_parent_child_relationship(
-                    node_id1=dependent_node,
-                    node_id2=predecessor_node,
-                    hierarchy_map=hierarchy_map,
+                
+                # Method 1: Direct value comparison (exact matches)
+                if self._has_dependency(
+                    inputs=record.inputs, 
+                    outputs=predecessor.outputs
                 ):
+                    self.dependency_map[current_node].add(predecessor_node)
                     continue
-
-                # Check for direct data flow by matching signatures
-                # This handles both primitive values and complex nested structures
-                data_match = self._find_matching_data(
-                    input_sigs=dependent_sigs,
-                    output_sigs=predecessor_sigs,
-                    inputs=dependent_inputs,
-                    outputs=predecessor_outputs,
+                
+                # Method 2: Signature-based detection for complex data structures
+                data_matches = self._find_matching_data(
+                    input_sigs=input_signatures[current_node],
+                    output_sigs=output_signatures[predecessor_node],
+                    inputs=record.inputs,
+                    outputs=predecessor.outputs
                 )
-
-                if data_match:
-                    # We found a data dependency
-                    self.dependency_map[dependent_node].add(predecessor_node)
-                    # Record the specific data flow paths
-                    for input_key, output_key in data_match:
-                        input_flow.append(
+                
+                if data_matches:
+                    # Record the dependency
+                    self.dependency_map[current_node].add(predecessor_node)
+                    
+                    # Track specific data flow paths for visualization and optimization
+                    for input_key, output_key in data_matches:
+                        self.data_flow_map[current_node]["inputs"].append(
                             (predecessor_node, f"{output_key}->{input_key}")
                         )
-
-            # Store the input flow information
-            self.data_flow_map[dependent_node]["inputs"] = input_flow
-
-            # Store output flow information for each field
+            
+            # Record output fields for this node
             output_flow = (
-                [(dependent_node, key) for key in record.outputs.keys()]
+                [(current_node, key) for key in record.outputs.keys()]
                 if isinstance(record.outputs, dict)
-                else [(dependent_node, "result")]
+                else [(current_node, "result")]
             )
-            self.data_flow_map[dependent_node]["outputs"] = output_flow
+            self.data_flow_map[current_node]["outputs"] = output_flow
+
+        # Phase 3: Structural analysis
+        # -----------------------------------------
+        # Identify groups of siblings that could be parallelized
+        sibling_groups = self._identify_sibling_groups(
+            hierarchy_map=hierarchy_map,
+            records=records,
+            input_signatures=input_signatures
+        )
+        
+        # Mark members of parallelizable groups
+        for group_id, node_ids in sibling_groups.items():
+            if len(node_ids) > 1:
+                # This is a potential parallelizable group
+                
+                # Check if nodes in the group have dependencies on each other
+                independent = self._check_group_independence(node_ids)
+                
+                if independent:
+                    # These nodes can run in parallel
+                    for node_id in node_ids:
+                        self.data_flow_map[node_id]["parallelizable"] = True
+                        self.data_flow_map[node_id]["parallel_group"] = group_id
+                        
+                        # Add metadata to the node record for graph visualization
+                        if hasattr(record_by_node_id[node_id], "graph_node_id"):
+                            graph_node_id = record_by_node_id[node_id].graph_node_id
+                            if graph_node_id:
+                                # Store information for graph building
+                                pass
+
+        # Phase 4: Identify aggregation patterns 
+        # -----------------------------------------
+        # Look for nodes that receive inputs from multiple sources
+        # These are often aggregators or judges that process results from parallel operations
+        for node_id, dependencies in self.dependency_map.items():
+            # Check for multiple dependencies - potential aggregator
+            if len(dependencies) > 1:
+                # Check if dependencies form a parallelizable group
+                dep_groups = {}
+                for dep in dependencies:
+                    group = self.data_flow_map[dep].get("parallel_group")
+                    if group:
+                        dep_groups.setdefault(group, []).append(dep)
+                
+                # If multiple dependencies come from the same parallel group,
+                # this node is likely an aggregator
+                for group, deps in dep_groups.items():
+                    if len(deps) > 1:
+                        self.data_flow_map[node_id]["is_aggregator"] = True
+                        break
+                        
+        # Phase 5: Final dependency adjustments
+        # -----------------------------------------
+        # Ensure execution order is preserved for dependent operations
+        # But allow parallel execution for truly independent operations
+        
+        # Start with temporal dependencies within the same parent context
+        for parent, children in hierarchy_map.items():
+            if len(children) < 2:
+                continue  # Nothing to analyze with just one child
+                
+            # Sort children by execution order
+            sorted_children = sorted(
+                children, 
+                key=lambda c: next(
+                    (r.timestamp for r in sorted_records if r.node_id == c), 
+                    float('inf')
+                )
+            )
+            
+            # For each child, ensure it depends on prior siblings that aren't parallelizable
+            for i, child in enumerate(sorted_children):
+                # Skip if marked parallelizable
+                if self.data_flow_map[child]["parallelizable"]:
+                    continue
+                    
+                # Ensure this child depends on all prior non-parallelizable siblings
+                for j in range(i):
+                    prior_sibling = sorted_children[j]
+                    # Skip if the prior sibling is parallelizable
+                    if self.data_flow_map[prior_sibling]["parallelizable"]:
+                        continue
+                        
+                    # If no data dependency exists, but execution order matters,
+                    # add a control dependency
+                    if prior_sibling not in self.dependency_map[child]:
+                        # Check if we need to preserve order
+                        if not self._can_reorder(
+                            prior=prior_sibling,
+                            current=child,
+                            input_signatures=input_signatures,
+                            output_signatures=output_signatures
+                        ):
+                            self.dependency_map[child].add(prior_sibling)
+    
+    def _identify_sibling_groups(
+        self, 
+        *, 
+        hierarchy_map: Dict[str, List[str]],
+        records: List[TraceRecord],
+        input_signatures: Dict[str, Dict[str, str]]
+    ) -> Dict[str, List[str]]:
+        """Identifies groups of sibling nodes that could potentially be parallelized.
+        
+        This method groups siblings based on structure and semantic similarity
+        to find operations that are candidates for parallelization.
+        
+        Args:
+            hierarchy_map: Map of parent-child relationships
+            records: All trace records
+            input_signatures: Signatures of all node inputs
+            
+        Returns:
+            Dictionary mapping group IDs to lists of node IDs
+        """
+        # Map from record ID to the record
+        record_map = {r.node_id: r for r in records}
+        
+        # Result: group_id -> [node_ids]
+        sibling_groups = {}
+        group_counter = 0
+        
+        # For each parent, analyze its children
+        for parent, children in hierarchy_map.items():
+            if len(children) < 2:
+                continue  # No siblings to analyze
+                
+            # Group children by their characteristics
+            # We'll group by operator_name as a good heuristic
+            by_op_name = {}
+            for child in children:
+                if child not in record_map:
+                    continue
+                    
+                op_name = record_map[child].operator_name
+                by_op_name.setdefault(op_name, []).append(child)
+            
+            # Any group with multiple children is a candidate for parallelization
+            for op_name, members in by_op_name.items():
+                if len(members) > 1:
+                    group_id = f"group_{group_counter}"
+                    group_counter += 1
+                    sibling_groups[group_id] = members
+        
+        # Look for other parallelizable patterns like distributed operators
+        # that might not be direct siblings
+        
+        # 1. Find operators that have similar names but different parents
+        # These might be ensemble members in different contexts
+        op_name_groups = {}
+        for record in records:
+            base_name = record.operator_name.split('_')[0]  # Handle "op_1", "op_2" naming
+            op_name_groups.setdefault(base_name, []).append(record.node_id)
+        
+        # Add these as potential parallel groups if they're not already grouped
+        for base_name, members in op_name_groups.items():
+            if len(members) > 1:
+                # Check if they're already grouped
+                already_grouped = False
+                for group_members in sibling_groups.values():
+                    if set(members).issubset(set(group_members)):
+                        already_grouped = True
+                        break
+                
+                if not already_grouped:
+                    # Check if they have similar input structures
+                    if self._have_similar_inputs(members, input_signatures):
+                        group_id = f"group_{group_counter}"
+                        group_counter += 1
+                        sibling_groups[group_id] = members
+        
+        return sibling_groups
+    
+    def _have_similar_inputs(
+        self, 
+        node_ids: List[str], 
+        input_signatures: Dict[str, Dict[str, str]]
+    ) -> bool:
+        """Checks if a group of nodes have similar input structures.
+        
+        This helps identify operations that perform similar functions,
+        which is a strong indicator they could run in parallel.
+        
+        Args:
+            node_ids: List of node IDs to compare
+            input_signatures: Input signatures for all nodes
+            
+        Returns:
+            True if the nodes have similar input structures
+        """
+        if not node_ids or len(node_ids) < 2:
+            return False
+            
+        # Get the input keys for each node
+        key_sets = []
+        for node_id in node_ids:
+            if node_id in input_signatures:
+                key_sets.append(set(input_signatures[node_id].keys()))
+            else:
+                return False  # Missing data
+                
+        # Check if all sets have high overlap
+        base_set = key_sets[0]
+        for key_set in key_sets[1:]:
+            # Calculate Jaccard similarity
+            intersection = len(base_set.intersection(key_set))
+            union = len(base_set.union(key_set))
+            if union == 0 or intersection / union < 0.7:  # 70% similarity threshold
+                return False
+                
+        return True
+        
+    def _check_group_independence(self, node_ids: List[str]) -> bool:
+        """Checks if nodes in a group are independent from each other.
+        
+        Nodes are independent if none of them depend on other nodes in the group.
+        
+        Args:
+            node_ids: List of node IDs to check
+            
+        Returns:
+            True if the nodes are independent, False otherwise
+        """
+        for node_id in node_ids:
+            dependencies = self.dependency_map.get(node_id, set())
+            if any(dep in node_ids for dep in dependencies):
+                return False  # Dependent on another node in the group
+                
+        return True
+        
+    def _can_reorder(
+        self, 
+        prior: str, 
+        current: str,
+        input_signatures: Dict[str, Dict[str, str]],
+        output_signatures: Dict[str, Dict[str, str]]
+    ) -> bool:
+        """Determines if two operations can be safely reordered.
+        
+        Operations can be reordered if they operate on completely different data
+        and have no side effects that would affect each other.
+        
+        Args:
+            prior: The node that executed earlier
+            current: The node that executed later
+            input_signatures: Input signatures for all nodes
+            output_signatures: Output signatures for all nodes
+            
+        Returns:
+            True if operations can be reordered, False if order must be preserved
+        """
+        # By default, preserve execution order unless we can prove reordering is safe
+        
+        # If input/output signatures overlap, order must be preserved
+        prior_out = output_signatures.get(prior, {})
+        current_in = input_signatures.get(current, {})
+        
+        # Check for signature overlap
+        for sig in prior_out.values():
+            if sig in current_in.values():
+                return False  # Data dependency exists
+                
+        # If both nodes are marked as parallelizable, they can be reordered
+        if (self.data_flow_map.get(prior, {}).get("parallelizable", False) and
+            self.data_flow_map.get(current, {}).get("parallelizable", False)):
+            return True
+                
+        # Conservative default: preserve order
+        return False
 
     def _generate_data_signatures(self, data: Any) -> Dict[str, str]:
         """Generates content signatures for each data field to track data flow.

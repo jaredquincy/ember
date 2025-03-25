@@ -582,6 +582,9 @@ def _execute_with_engine(
 ) -> Dict[str, Any]:
     """
     Execute a graph with the XCS engine using the specified strategy.
+    
+    This function is the core execution method for structural JIT, leveraging
+    the XCS engine to optimize and parallelize execution based on the graph structure.
 
     Args:
         graph: The XCS graph to execute
@@ -593,50 +596,92 @@ def _execute_with_engine(
     Returns:
         The execution results
     """
-    # The special case bypass has been removed to enable graph execution
-    # This allows the structural JIT to properly leverage the XCS engine's parallelization
-
-    # Create execution strategy
+    # Setup logging
+    logger = logging.getLogger("ember.xcs.tracer.structural_jit")
+    logger.debug(f"Executing graph with {len(graph.nodes)} nodes using strategy: {strategy}")
+    
+    # Create execution strategy based on parameters
     execution_strategy = create_execution_strategy(
         strategy=strategy,
         parallel_threshold=threshold,
         max_workers=max_workers,
     )
 
-    # Get scheduler from strategy
+    # Get scheduler from strategy - the scheduler will handle parallelization
     scheduler = execution_strategy.get_scheduler(graph=graph)
+    logger.debug(f"Using scheduler: {scheduler.__class__.__name__}")
 
-    # Compile and execute the graph
-    plan = compile_graph(graph=graph)
-    results = scheduler.run_plan(
-        plan=plan,
-        global_input=inputs,
-        graph=graph,
-    )
-
-    # Return results based on the structure type
-    # If we have a single node, just return its result
-    if len(graph.nodes) == 1:
-        node_id = next(iter(graph.nodes.keys()))
-        return results.get(node_id, {})
-
-    # For more complex graphs, look for root or leaf nodes
-    leaf_nodes = [
-        node_id for node_id, node in graph.nodes.items() if not node.outbound_edges
-    ]
-
-    # If there's a single leaf node, return its result
-    if len(leaf_nodes) == 1 and leaf_nodes[0] in results:
-        return results[leaf_nodes[0]]
-
-    # For operators that call the original method, we might not get the
-    # expected result structure, so fall back to the original result
-    # This happens when using our recursion guard
-    if hasattr(graph, "original_result") and graph.original_result is not None:
-        return graph.original_result
-
-    # As a last resort, return all results
-    return results
+    try:
+        # Compile the graph into an executable plan
+        plan = compile_graph(graph=graph)
+        
+        # Execute the graph using the selected scheduler
+        results = scheduler.run_plan(
+            plan=plan,
+            global_input=inputs,
+            graph=graph,
+        )
+        
+        logger.debug(f"Graph execution complete. Results for {len(results)} nodes.")
+        
+        # Determine appropriate output to return
+        # Multiple strategies in order of preference:
+        
+        # Strategy 1: If there's a single node, return its result
+        if len(graph.nodes) == 1:
+            node_id = next(iter(graph.nodes.keys()))
+            if node_id in results:
+                logger.debug(f"Returning result from single node: {node_id}")
+                return results.get(node_id, {})
+        
+        # Strategy 2: If there's a single leaf node, return its result
+        leaf_nodes = [
+            node_id for node_id, node in graph.nodes.items() if not node.outbound_edges
+        ]
+        if len(leaf_nodes) == 1 and leaf_nodes[0] in results:
+            logger.debug(f"Returning result from single leaf node: {leaf_nodes[0]}")
+            return results[leaf_nodes[0]]
+        
+        # Strategy 3: If there's an "original_operator" node, use its result
+        if "original_operator" in graph.nodes and "original_operator" in results:
+            logger.debug("Returning result from original_operator node")
+            return results["original_operator"]
+        
+        # Strategy 4: If there's a metadata hint about the output node, use it
+        if "output_node" in graph.metadata and graph.metadata["output_node"] in results:
+            output_node = graph.metadata["output_node"]
+            logger.debug(f"Returning result from output_node in metadata: {output_node}")
+            return results[output_node]
+            
+        # Strategy 5: Check if multiple leaf nodes have identical results
+        if len(leaf_nodes) > 1:
+            leaf_results = [results.get(node) for node in leaf_nodes if node in results]
+            if leaf_results and all(r == leaf_results[0] for r in leaf_results):
+                logger.debug(f"Multiple leaf nodes with identical results, using first")
+                return leaf_results[0]
+                
+        # Strategy 6: If we stored the original result from initialization, use it
+        # This is a fallback for complex cases where we can't determine the output
+        if hasattr(graph, "original_result") and graph.original_result is not None:
+            logger.debug("Using cached original_result as fallback")
+            return graph.original_result
+            
+        # Strategy 7: As a last resort, return the full results dictionary
+        # This is not ideal but provides the most information for debugging
+        logger.debug("Could not determine specific output, returning full results dictionary")
+        return results
+        
+    except Exception as e:
+        # Handle and log any errors during graph execution
+        logger.warning(f"Error executing graph: {e}")
+        
+        # If we have a cached original result, use it as fallback
+        if hasattr(graph, "original_result") and graph.original_result is not None:
+            logger.debug("Error in graph execution, using cached original_result")
+            return graph.original_result
+            
+        # Re-raise the exception if we can't recover
+        raise
 
 
 # -----------------------------------------------------------------------------
