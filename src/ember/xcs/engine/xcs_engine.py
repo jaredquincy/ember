@@ -163,10 +163,21 @@ class TopologicalSchedulerWithParallelDispatch(TopologicalScheduler):
                         task = plan.tasks[node_id]
 
                         # Collect inputs from predecessors
-                        inputs = global_input.copy()
-                        for pred_id in task.inputs:
-                            if pred_id in results:
-                                inputs.update(results[pred_id])
+                        # Check if input is a dictionary or other type
+                        try:
+                            inputs = global_input.copy()
+                            for pred_id in task.inputs:
+                                if pred_id in results:
+                                    if hasattr(inputs, 'update') and callable(inputs.update):
+                                        inputs.update(results[pred_id])
+                                    else:
+                                        # For non-dictionary inputs, we can't update them
+                                        # Just pass through global_input
+                                        inputs = global_input
+                                        break
+                        except (AttributeError, TypeError):
+                            # If copy or update fails, just use the original input
+                            inputs = global_input
 
                         # Add node name to inputs for tracking
                         if "node_name" in global_input:
@@ -220,9 +231,23 @@ def execute_graph(
                 node = graph.nodes[node_id]
 
                 # Collect inputs from predecessors or use global input for source nodes
-                inputs = global_input.copy() if not node.inbound_edges else {}
-                for pred_id in node.inbound_edges:
-                    inputs.update(results[pred_id])
+                try:
+                    if not node.inbound_edges:
+                        inputs = global_input.copy() if hasattr(global_input, 'copy') else global_input
+                    else:
+                        # Starting with empty dict if we have inbound edges
+                        inputs = {}
+                        for pred_id in node.inbound_edges:
+                            if hasattr(inputs, 'update') and callable(inputs.update):
+                                inputs.update(results[pred_id])
+                            else:
+                                # For non-dictionary inputs, set to the first result
+                                inputs = results[pred_id]
+                                break
+                except (AttributeError, TypeError):
+                    # If copy or update fails, use global_input for source nodes
+                    # or first predecessor result for non-source nodes
+                    inputs = global_input if not node.inbound_edges else results[node.inbound_edges[0]]
 
                 # Add node_id to inputs for tracking in test functions
                 if "node_name" in global_input:
@@ -248,9 +273,23 @@ def execute_graph(
                     node = graph.nodes[node_id]
 
                     # Collect inputs from predecessors or use global input for source nodes
-                    inputs = global_input.copy() if not node.inbound_edges else {}
-                    for pred_id in node.inbound_edges:
-                        inputs.update(results[pred_id])
+                    try:
+                        if not node.inbound_edges:
+                            inputs = global_input.copy() if hasattr(global_input, 'copy') else global_input
+                        else:
+                            # Starting with empty dict if we have inbound edges
+                            inputs = {}
+                            for pred_id in node.inbound_edges:
+                                if hasattr(inputs, 'update') and callable(inputs.update):
+                                    inputs.update(results[pred_id])
+                                else:
+                                    # For non-dictionary inputs, set to the first result
+                                    inputs = results[pred_id]
+                                    break
+                    except (AttributeError, TypeError):
+                        # If copy or update fails, use global_input for source nodes
+                        # or first predecessor result for non-source nodes
+                        inputs = global_input if not node.inbound_edges else results[node.inbound_edges[0]]
 
                     # Add node_id to inputs for tracking in test functions
                     if "node_name" in global_input:

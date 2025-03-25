@@ -593,15 +593,8 @@ def _execute_with_engine(
     Returns:
         The execution results
     """
-    # Special case for complex operators: run original method if available
-    if hasattr(graph, "original_result"):
-        # For real execution, we should prefer the original method
-        # This is a deliberate choice for this test implementation
-        # In a production environment, we would execute the optimized graph instead
-        if "original_operator" in graph.nodes:
-            # Execute the original operator directly with the new inputs
-            original_op = graph.nodes["original_operator"].operator
-            return original_op(inputs=inputs)
+    # The special case bypass has been removed to enable graph execution
+    # This allows the structural JIT to properly leverage the XCS engine's parallelization
 
     # Create execution strategy
     execution_strategy = create_execution_strategy(

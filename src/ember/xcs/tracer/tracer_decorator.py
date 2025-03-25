@@ -37,6 +37,7 @@ from __future__ import annotations
 
 import functools
 import inspect
+import logging
 import time
 from typing import (
     Any,
@@ -211,12 +212,38 @@ def jit(
             tracer: Optional[TracerContext] = TracerContext.get_current()
             # For debugging and test purposes
             force_trace_local = getattr(self, "_force_trace", force_trace)
-
-            # Execute the original call - for now, always execute directly
-            # This simplifies the code and avoids test breakage
-            start_time = time.time()
-            output = original_call(self=self, inputs=inputs)
-            end_time = time.time()
+            
+            # Check if we have a cached compiled graph
+            op_id = id(self)
+            if not force_trace_local and op_id in _COMPILED_GRAPHS:
+                # Execute using the optimized graph
+                from ember.xcs.engine.xcs_engine import execute_graph, TopologicalSchedulerWithParallelDispatch
+                graph = _COMPILED_GRAPHS[op_id]
+                
+                # For debugging
+                logger = logging.getLogger("ember.xcs.tracer.jit")
+                logger.debug(f"Using optimized graph for {self.__class__.__name__} (id: {op_id})")
+                
+                results = execute_graph(
+                    graph=graph,
+                    global_input=inputs,
+                    scheduler=TopologicalSchedulerWithParallelDispatch()
+                )
+                
+                # Find the appropriate result to return
+                leaf_nodes = [node_id for node_id, node in graph.nodes.items() if not node.outbound_edges]
+                if len(leaf_nodes) == 1:
+                    return results[leaf_nodes[0]]
+                
+                # Fallback to original execution if we can't determine the output
+                start_time = time.time()
+                output = original_call(self=self, inputs=inputs)
+                end_time = time.time()
+            else:
+                # Execute the original call if no compiled graph exists
+                start_time = time.time()
+                output = original_call(self=self, inputs=inputs)
+                end_time = time.time()
 
             # Record trace if in a tracer context or force_trace is enabled
             if tracer is not None or force_trace_local:
@@ -235,6 +262,19 @@ def jit(
                 # Add to tracer if available
                 if tracer is not None:
                     tracer.add_record(record=record)
+                    
+                    # Check if we need to build and cache a graph
+                    # We'll only build if this is the root operator call to avoid duplicate graphs
+                    if force_trace_local or not any(r.node_id == str(id(self)) for r in tracer.records[:-1]):
+                        # Import here to avoid circular imports
+                        from ember.xcs.tracer.autograph import AutoGraphBuilder
+                        
+                        # Build a graph from the current trace records
+                        graph_builder = AutoGraphBuilder()
+                        graph = graph_builder.build_graph(tracer.records)
+                        
+                        # Cache the graph for future use
+                        _COMPILED_GRAPHS[id(self)] = graph
 
             # Return the actual output
             return output
