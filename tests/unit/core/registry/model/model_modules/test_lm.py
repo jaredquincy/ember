@@ -5,7 +5,6 @@ These tests check that LMModule:
   - properly calls the underlying ModelService when simulate_api is False.
 """
 
-import logging
 from typing import Any
 
 import pytest

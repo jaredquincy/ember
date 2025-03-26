@@ -7,7 +7,7 @@ principle of "avoid overmocking" from CLAUDE.md guidelines.
 """
 
 import functools
-from typing import Any, Callable, Dict, List, Optional, TypeVar, Union
+from typing import Any, Callable, Dict, List, Optional, TypeVar
 
 # Type variables
 T = TypeVar("T")

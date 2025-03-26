@@ -12,10 +12,8 @@ import pytest
 from ember.xcs.utils.structured_logging import (
     LoggingConfig,
     clear_context,
-    configure_logging,
     enrich_exception,
     get_context_value,
-    get_structured_logger,
     log_context,
     set_context_value,
     time_operation,

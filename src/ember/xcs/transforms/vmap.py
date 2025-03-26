@@ -15,16 +15,11 @@ from typing import (
     Any,
     Callable,
     Dict,
-    Generic,
-    Iterable,
     List,
     Mapping,
-    Optional,
     Sequence,
-    Tuple,
     TypeVar,
     Union,
-    cast,
 )
 
 from ember.core.exceptions import TransformError
@@ -316,6 +311,6 @@ def vmap(
         vectorized_func.__doc__ = f"Vectorized version of: {fn.__doc__}"
 
     # Adding reference back to original function
-    setattr(vectorized_func, "_original_func", fn)
+    vectorized_func._original_func = fn
 
     return vectorized_func

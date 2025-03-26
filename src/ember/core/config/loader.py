@@ -6,7 +6,6 @@ and transforming it into a validated EmberConfig object.
 
 import os
 import re
-from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from .exceptions import ConfigError

@@ -46,9 +46,7 @@ Examples:
 from __future__ import annotations
 
 from typing import (
-    Callable,
     Dict,
-    Generic,
     Hashable,
     List,
     Protocol,

@@ -4,18 +4,14 @@ This module provides access to the centralized configuration system in ember.cor
 """
 
 import logging
-import os
 import warnings
-from typing import Any, Dict, List, Optional, Set
-
-from pydantic import BaseModel
+from typing import Optional
 
 from ember.core.config.manager import create_config_manager
 
 # Import from current locations
 # Import from centralized config system
 from ember.core.config.schema import EmberConfig
-from ember.core.config.schema import EmberConfig as EmberSettings
 from ember.core.exceptions import EmberError
 from ember.core.registry.model.base.registry.model_registry import ModelRegistry
 from ember.core.registry.model.base.schemas.cost import ModelCost, RateLimit

@@ -29,18 +29,13 @@ import logging
 import os
 import time
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Dict, List
 
 from ember.api import models
 from ember.api.models import (
     ModelCost,
     ModelEnum,
     ModelInfo,
-    ModelRegistry,
-    ModelService,
     RateLimit,
-    UsageService,
-    UsageStats,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -75,7 +70,7 @@ def standard_pattern():
     """
     try:
         # With the new API, we can create a model instance with more control
-        from ember.api.models import ModelAPI, ModelBuilder
+        from ember.api.models import ModelBuilder
 
         # Create a model with specific parameters
         model = (
@@ -94,7 +89,7 @@ def standard_pattern():
         # Check usage statistics
         if response.usage:
             print(f"Total tokens used: {response.usage.total_tokens}")
-            print(f"Estimated cost: available through the models.usage API")
+            print("Estimated cost: available through the models.usage API")
 
         return model
     except Exception as e:

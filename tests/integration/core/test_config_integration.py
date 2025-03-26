@@ -6,13 +6,11 @@ with the model registry and other components.
 
 import os
 import tempfile
-from pathlib import Path
 
 import pytest
 import yaml
 
-from ember.core.app_context import create_ember_app, get_app_context
-from ember.core.config.manager import create_config_manager
+from ember.core.app_context import create_ember_app
 from ember.core.registry.model.initialization import initialize_registry
 
 

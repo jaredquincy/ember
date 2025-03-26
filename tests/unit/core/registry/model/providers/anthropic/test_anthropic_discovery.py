@@ -204,8 +204,6 @@ def test_anthropic_discovery_timeout_handling(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Test the improved timeout handling in the Anthropic provider."""
-    import time
-    from unittest.mock import patch
 
     # Mock requests.get to raise a timeout exception
     def request_that_raises_timeout(*args, **kwargs):
@@ -230,7 +228,6 @@ def test_anthropic_discovery_response_format_handling(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Test handling of different response formats from the Anthropic API."""
-    import json
     from unittest.mock import MagicMock
 
     # Case 1: Test with response containing dict with data key

@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-import re
 import subprocess
-from typing import Any, Callable, Dict, Generic, List, Optional, TypeVar, Union
+from typing import Any, Callable, Generic, Optional, TypeVar
 
 from .base_evaluator import EvaluationResult, IEvaluator
 from .extractors import RegexExtractor

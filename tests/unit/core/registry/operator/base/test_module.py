@@ -350,7 +350,7 @@ def test_boundmethod_structure() -> None:
     assert hasattr(
         BoundMethod, "__self__"
     ), "BoundMethod should have a __self__ attribute"
-    assert hasattr(BoundMethod, "__call__"), "BoundMethod should have a __call__ method"
+    assert callable(BoundMethod), "BoundMethod should have a __call__ method"
 
 
 def test_boundmethod_call_specification() -> None:

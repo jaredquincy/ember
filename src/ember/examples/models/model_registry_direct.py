@@ -14,11 +14,9 @@ Note: You need to edit this file to replace the placeholder API keys with your a
 """
 
 import logging
-from typing import Dict, List, Optional
 
 # Import the registry components
 from ember import initialize_ember
-from ember.core.registry.model.base.registry.model_registry import ModelRegistry
 from ember.core.registry.model.base.schemas.model_info import ModelInfo
 from ember.core.registry.model.base.schemas.provider_info import ProviderInfo
 from ember.core.registry.model.base.services.model_service import ModelService

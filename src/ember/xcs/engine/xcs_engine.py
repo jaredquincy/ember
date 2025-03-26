@@ -38,9 +38,7 @@ Usage patterns:
    ```
 """
 
-import dataclasses
 import logging
-import threading
 import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
@@ -49,16 +47,12 @@ from typing import (
     Callable,
     Dict,
     List,
-    NamedTuple,
     Optional,
     Protocol,
     Set,
-    Tuple,
-    TypeVar,
-    Union,
 )
 
-from ember.xcs.graph.xcs_graph import XCSGraph, XCSNode
+from ember.xcs.graph.xcs_graph import XCSGraph
 
 logger = logging.getLogger(__name__)
 

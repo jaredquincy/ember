@@ -16,13 +16,12 @@ Required environment variables:
 
 import logging
 import os
-from typing import Dict, List, Optional
+from typing import List
 
 from prettytable import PrettyTable
 
 from ember.api import models
 from ember.api.models import ModelCost, ModelInfo, ProviderInfo, RateLimit
-from ember.core.registry.model.base.registry.model_registry import ModelRegistry
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
@@ -68,7 +67,7 @@ def register_models() -> List[str]:
         if not registry.is_registered("openai:gpt-4o"):
             try:
                 registry.register_model(model_info=gpt4o_info)
-                logger.info(f"Registered model: openai:gpt-4o")
+                logger.info("Registered model: openai:gpt-4o")
             except ValueError as e:
                 logger.info(f"Model registration error: {e}")
         else:
@@ -95,7 +94,7 @@ def register_models() -> List[str]:
         if not registry.is_registered("openai:gpt-4o-mini"):
             try:
                 registry.register_model(model_info=gpt4o_mini_info)
-                logger.info(f"Registered model: openai:gpt-4o-mini")
+                logger.info("Registered model: openai:gpt-4o-mini")
             except ValueError as e:
                 logger.info(f"Model registration error: {e}")
         else:
@@ -126,7 +125,7 @@ def register_models() -> List[str]:
         if not registry.is_registered("anthropic:claude-3-5-sonnet"):
             try:
                 registry.register_model(model_info=claude_sonnet_info)
-                logger.info(f"Registered model: anthropic:claude-3-5-sonnet")
+                logger.info("Registered model: anthropic:claude-3-5-sonnet")
             except ValueError as e:
                 logger.info(f"Model registration error: {e}")
         else:

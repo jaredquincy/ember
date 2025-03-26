@@ -4,9 +4,7 @@ This module verifies the correct behavior of the NoOp scheduler implementation,
 which provides a sequential execution strategy for XCS graphs without parallelism.
 """
 
-from typing import Any, Dict, List
-
-import pytest
+from typing import Any, Dict
 
 from ember.xcs.engine.xcs_engine import execute_graph
 from ember.xcs.engine.xcs_noop_scheduler import XCSNoOpScheduler
@@ -78,14 +76,14 @@ def test_noop_scheduler_sequential_execution() -> None:
     ), f"Expected at least 4 executions, got {len(final_history)}"
 
     # Verify node1 executed first (after input) and node3 executed last
-    assert "node1" in final_history, f"Node1 not found in execution history"
+    assert "node1" in final_history, "Node1 not found in execution history"
     assert (
         final_history[-1] == "node3"
     ), f"Last node executed was {final_history[-1]}, expected node3"
 
     # Verify middle nodes were executed
-    assert "node2a" in final_history, f"Node2a not found in execution history"
-    assert "node2b" in final_history, f"Node2b not found in execution history"
+    assert "node2a" in final_history, "Node2a not found in execution history"
+    assert "node2b" in final_history, "Node2b not found in execution history"
 
 
 def test_noop_scheduler_wave_generation() -> None:
@@ -147,5 +145,5 @@ def test_simple_math_operation() -> None:
     scheduler = XCSNoOpScheduler()
     results = execute_graph(graph=graph, global_input={"value": 3}, scheduler=scheduler)
 
-    assert node1 in results, f"Missing results for node1"
+    assert node1 in results, "Missing results for node1"
     assert results[node1]["out"] == 6, f"Expected output 6, got {results[node1]['out']}"

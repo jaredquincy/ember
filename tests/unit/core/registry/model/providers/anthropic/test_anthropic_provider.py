@@ -74,7 +74,6 @@ def test_anthropic_forward(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test that AnthropicModel.forward returns a ChatResponse with correct data."""
     # Fix the type checking issue by directly examining the response content
     import inspect
-    import sys
 
     from ember.core.registry.model.base.schemas.chat_schemas import ChatResponse
 

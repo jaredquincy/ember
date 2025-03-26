@@ -23,7 +23,7 @@ To run:
 import logging
 import random
 import time
-from typing import Any, ClassVar, Dict, List, Tuple
+from typing import Any, ClassVar, Dict
 
 from ember.core.registry.operator.base.operator_base import Operator
 

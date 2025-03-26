@@ -2,7 +2,7 @@
 This test mocks google.generativeai.list_models to return a dummy model.
 """
 
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 import google.generativeai as genai
 import pytest

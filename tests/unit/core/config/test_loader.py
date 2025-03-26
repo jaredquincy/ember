@@ -5,7 +5,6 @@ This module contains tests for the configuration loading functionality in ember.
 
 import os
 import tempfile
-from typing import Any, Dict
 
 import pytest
 import yaml

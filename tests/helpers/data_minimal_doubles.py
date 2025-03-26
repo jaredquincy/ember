@@ -10,9 +10,7 @@ Also includes minimal doubles for the unified data registry system.
 
 import json
 import logging
-from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, Generic, List, Optional, Type, TypeVar, Union
-from unittest import mock
+from typing import Any, Callable, Dict, Generic, List, Optional, TypeVar
 
 # Setup logger
 logger = logging.getLogger(__name__)
@@ -264,7 +262,7 @@ class MinimalDataService:
             else:
                 for validator in self.validators:
                     if not validator.validate(data):
-                        raise ValueError(f"Validation failed for data")
+                        raise ValueError("Validation failed for data")
 
         # Transform data
         for transformer in self.transformers:

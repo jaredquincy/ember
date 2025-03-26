@@ -10,7 +10,7 @@ To run:
 
 import argparse
 import random
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Tuple
 
 
 class DatasetEntry:

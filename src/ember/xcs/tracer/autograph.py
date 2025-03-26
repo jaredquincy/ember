@@ -10,8 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
-from collections import defaultdict
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union, cast
+from typing import Any, Callable, Dict, List, Set, Tuple
 
 from ember.xcs.graph.xcs_graph import XCSGraph
 from ember.xcs.tracer.xcs_tracing import TraceRecord

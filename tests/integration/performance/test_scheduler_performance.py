@@ -6,11 +6,9 @@ phase. It constructs graphs directly and executes them with different schedulers
 to measure parallelization benefits.
 """
 
-import time
-import statistics
 import logging
-from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Dict, List, Optional
+import statistics
+import time
 
 from ember.xcs.engine.xcs_engine import (
     TopologicalSchedulerWithParallelDispatch,

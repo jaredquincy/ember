@@ -78,7 +78,6 @@ class TestRegistryCompatibility(unittest.TestCase):
         registry.register_new(name=test_info.name, info=test_info)
 
         # Importing the function that has our compatibility code
-        from ember.core.utils.data import initialize_dataset_registry
 
         # Create helper class to test different access patterns
         class RegistryAccessor:

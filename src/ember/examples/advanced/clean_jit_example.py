@@ -14,7 +14,7 @@ To run:
 
 import logging
 import time
-from typing import Any, ClassVar, Dict, List, Type
+from typing import ClassVar, List, Type
 
 from ember.api import models
 from ember.api.xcs import jit
@@ -22,11 +22,6 @@ from ember.api.xcs import jit
 # ember imports
 from ember.core.registry.operator.base.operator_base import Operator, Specification
 from ember.core.types.ember_model import EmberModel, Field
-from ember.xcs.engine.xcs_engine import (
-    TopologicalSchedulerWithParallelDispatch,
-    execute_graph,
-)
-from ember.xcs.graph.xcs_graph import XCSGraph
 
 ###############################################################################
 # Input/Output Models

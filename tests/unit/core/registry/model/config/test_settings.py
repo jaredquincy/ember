@@ -1,8 +1,6 @@
 """Simplified tests for the model registry initialization module."""
 
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import MagicMock
 
 
 # Mock ModelInfo class

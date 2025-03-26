@@ -8,7 +8,7 @@ functionality and performance benefits of parallel execution.
 
 import random
 import time
-from typing import Any, ClassVar, Dict, List, Optional
+from typing import Any, ClassVar, Dict
 
 import pytest
 
@@ -635,7 +635,7 @@ class TestBareWithVMap:
                     )
 
         # 4. Performance verification
-        print(f"\nPerformance verification:")
+        print("\nPerformance verification:")
         print(f"Sequential time: {sequential_time:.4f}s")
         print(f"Parallel time: {parallel_time:.4f}s")
         speedup = sequential_time / parallel_time if parallel_time > 0 else 0

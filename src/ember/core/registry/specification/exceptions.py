@@ -6,8 +6,6 @@ Prefer using the exceptions directly from ember.core.exceptions in new code.
 """
 
 from ember.core.exceptions import (
-    EmberError,
-    InvalidArgumentError,
     SpecificationValidationError,
 )
 

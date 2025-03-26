@@ -6,7 +6,7 @@ and DatasetMetadataRegistry classes.
 """
 
 import unittest
-from typing import Any, Dict, List, Optional, Type, cast
+from typing import Any, Dict, List
 from unittest import mock
 
 from ember.core.utils.data.base.models import DatasetInfo, TaskType
@@ -19,7 +19,6 @@ from ember.core.utils.data.metadata_registry import (
 )
 from ember.core.utils.data.registry import (
     UNIFIED_REGISTRY,
-    RegisteredDataset,
     UnifiedDatasetRegistry,
     initialize_registry,
     register,
@@ -334,10 +333,6 @@ class TestCompatibilityLayer(unittest.TestCase):
         # Import the compatibility layer
         from ember.core.utils.data.metadata_registry import (
             UNIFIED_REGISTRY,
-            DatasetMetadataRegistry,
-            DatasetRegistry,
-            DatasetRegistryManager,
-            register_dataset,
         )
 
         self.DatasetRegistry = DatasetRegistry
@@ -358,7 +353,6 @@ class TestCompatibilityLayer(unittest.TestCase):
 
     def test_legacy_imports_point_to_unified_registry(self) -> None:
         """Test that legacy imports point to the unified registry."""
-        from ember.core.utils.data.registry import UNIFIED_REGISTRY
 
         # Due to import remapping during testing, we can't directly check the exact class
         # Just verify they are all the correct type by checking their class names instead

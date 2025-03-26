@@ -1,7 +1,7 @@
 """Unit tests for EmberModel."""
 
 import unittest
-from typing import Any, Dict, List, Optional
+from typing import Optional
 
 from ember.core.types import EmberModel
 

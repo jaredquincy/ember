@@ -35,7 +35,7 @@ Usage examples:
 """
 
 import dataclasses
-from typing import Any, Dict, Generator, Optional, TypeVar, cast
+from typing import Any, Optional
 
 from ember.core.exceptions import InvalidArgumentError
 
@@ -91,7 +91,7 @@ def set_execution_options(**kwargs: Any) -> None:
     for key, value in kwargs.items():
         if key == "scheduler" and value == "sequential":
             # Handle the legacy scheduler="sequential" option by setting use_parallel=False
-            setattr(_global_options, "use_parallel", False)
+            _global_options.use_parallel = False
             setattr(_global_options, key, value)
         elif hasattr(_global_options, key):
             setattr(_global_options, key, value)

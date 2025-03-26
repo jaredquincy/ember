@@ -36,19 +36,16 @@ Example:
 from __future__ import annotations
 
 import functools
-import inspect
 import logging
 import time
 from typing import (
     Any,
     Callable,
     Dict,
-    List,
     Optional,
     Type,
     TypeVar,
     cast,
-    get_type_hints,
 )
 
 # Import the base classes carefully to avoid circular imports
@@ -163,9 +160,7 @@ def jit(
         try:
             if not issubclass(cls, Operator):
                 # Check for duck typing - if it has a __call__ method with the right signature
-                if not (
-                    hasattr(cls, "__call__") and callable(getattr(cls, "__call__"))
-                ):
+                if not (callable(cls) and callable(cls.__call__)):
                     raise TypeError(
                         "@jit decorator can only be applied to an Operator-like class with a __call__ method."
                     )
@@ -226,9 +221,9 @@ def jit(
             if not force_trace_local and op_id in _COMPILED_GRAPHS:
                 try:
                     # Import execution components
-                    from ember.xcs.engine.xcs_engine import execute_graph
                     from ember.xcs.engine.xcs_engine import (
                         TopologicalSchedulerWithParallelDispatch,
+                        execute_graph,
                     )
 
                     # Get cached graph
@@ -282,7 +277,7 @@ def jit(
                             results.get(node) == first_result for node in leaf_nodes
                         ):
                             logger.debug(
-                                f"All leaf nodes have identical results, using first one"
+                                "All leaf nodes have identical results, using first one"
                             )
                             return first_result
 

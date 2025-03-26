@@ -43,12 +43,12 @@ Example:
 
 from __future__ import annotations
 
-import functools
-from typing import Any, Callable, Dict, Optional, Type, TypeVar, Union, cast, overload
+from typing import Callable, Type, TypeVar, overload
+
+from ember.xcs.tracer.structural_jit import structural_jit
 
 # Import specialized JIT implementations
 from ember.xcs.tracer.tracer_decorator import jit as trace_jit
-from ember.xcs.tracer.structural_jit import structural_jit
 
 # Type variable for operator classes
 T = TypeVar("T")

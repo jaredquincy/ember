@@ -22,7 +22,6 @@ import collections
 import dataclasses
 import logging
 import threading
-import weakref
 from dataclasses import Field, field
 from typing import (
     Any,

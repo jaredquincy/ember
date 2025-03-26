@@ -5,10 +5,8 @@ It handles loading, validating, and accessing configuration values.
 """
 
 import logging
-import os
-from pathlib import Path
 from threading import RLock
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from .exceptions import ConfigError
 from .loader import load_config

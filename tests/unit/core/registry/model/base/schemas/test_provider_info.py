@@ -2,7 +2,6 @@
 Ensures that ProviderInfo initializes correctly and that optional fields default appropriately.
 """
 
-import pytest
 
 from ember.core.registry.model.base.schemas.provider_info import ProviderInfo
 

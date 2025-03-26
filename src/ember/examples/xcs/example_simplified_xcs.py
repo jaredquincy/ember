@@ -8,7 +8,7 @@ To run:
     poetry run python src/ember/examples/example_simplified_xcs.py
 """
 
-from typing import Any, ClassVar, Dict, Optional, Type
+from typing import ClassVar, Optional, Type
 
 from ember.api.xcs import jit, pmap, vmap
 from ember.core.registry.operator.base.operator_base import Operator
@@ -16,9 +16,6 @@ from ember.core.registry.specification.specification import Specification
 from ember.core.types.ember_model import EmberModel
 
 # Import the API for advanced configuration
-from ember.xcs.api.types import JITOptions
-from ember.xcs.engine.execution_options import execution_options
-from ember.xcs.tracer import autograph
 
 
 # Create input/output models for our operators
@@ -73,12 +70,12 @@ def main():
     # Demonstrate the operators in action
     print("Simple Operator Demo:")
     result1 = simple_op(inputs={"query": "hello world"})
-    print(f"  Input: 'hello world'")
+    print("  Input: 'hello world'")
     print(f"  Output: '{result1['result']}'")  # Should be "HELLO WORLD"
 
     print("\nAdvanced Operator Demo:")
     result2 = advanced_op(inputs={"query": "precompiled input"})
-    print(f"  Input: 'precompiled input'")
+    print("  Input: 'precompiled input'")
     print(f"  Output: '{result2['result']}'")  # Should be "precompiled input!"
 
     # Vectorization example
@@ -98,7 +95,7 @@ def main():
     # Parallelize the function
     print("\nParallelization Example:")
     parallel_process = pmap(process_item)
-    print(f"  The pmap decorator enables parallel processing across multiple cores")
+    print("  The pmap decorator enables parallel processing across multiple cores")
     print("  Usage: parallel_process(inputs={'values': [1, 2, 3]})")
 
     # Show autograph example

@@ -27,8 +27,9 @@ class TestOutput(EmberModel):
 class SimpleOperator(Operator[TestInput, TestOutput]):
     """A simple operator for testing JIT implementations."""
 
-    from ember.core.registry.specification.specification import Specification
     from typing import ClassVar
+
+    from ember.core.registry.specification.specification import Specification
 
     specification: ClassVar[Specification] = Specification()
 

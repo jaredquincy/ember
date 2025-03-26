@@ -6,10 +6,7 @@ scheduler, focusing on performance and correctness when executing independent op
 
 import threading
 import time
-from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Dict, List
-
-import pytest
 
 from ember.xcs.engine.xcs_engine import (
     TopologicalSchedulerWithParallelDispatch,
@@ -213,7 +210,7 @@ def test_parallel_scheduler_wave_generation() -> None:
 
     # Wave 1: Should contain only the source
     assert len(waves[0]) == 1, f"First wave should have 1 node, got {len(waves[0])}"
-    assert source in waves[0], f"Source node missing from first wave"
+    assert source in waves[0], "Source node missing from first wave"
 
     # Wave 2: Should contain all three branches
     assert len(waves[1]) == 3, f"Second wave should have 3 nodes, got {len(waves[1])}"
@@ -227,7 +224,7 @@ def test_parallel_scheduler_wave_generation() -> None:
 
     # Wave 4: Should contain only the sink
     assert len(waves[3]) == 1, f"Fourth wave should have 1 node, got {len(waves[3])}"
-    assert sink in waves[3], f"Sink node missing from fourth wave"
+    assert sink in waves[3], "Sink node missing from fourth wave"
 
 
 def test_parallel_execution_with_worker_limits() -> None:

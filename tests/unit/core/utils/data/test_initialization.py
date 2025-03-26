@@ -7,14 +7,13 @@ and unified registry systems.
 import unittest
 from unittest import mock
 
-from ember.core.utils.data.base.models import DatasetInfo, TaskType
+from ember.core.utils.data.base.models import TaskType
 from ember.core.utils.data.datasets_registry.commonsense_qa import CommonsenseQAPrepper
 from ember.core.utils.data.datasets_registry.halueval import HaluEvalPrepper
 from ember.core.utils.data.datasets_registry.mmlu import MMLUPrepper
 from ember.core.utils.data.datasets_registry.short_answer import ShortAnswerPrepper
 from ember.core.utils.data.datasets_registry.truthful_qa import TruthfulQAPrepper
 from ember.core.utils.data.registry import (
-    UNIFIED_REGISTRY,
     UnifiedDatasetRegistry,
     initialize_registry,
 )
@@ -140,8 +139,6 @@ class TestDatasetInitialization(unittest.TestCase):
     def test_registry_integration(self) -> None:
         """Test integration between registry components."""
         # Get a reference to the global registry
-        from ember.core.utils.data.base.models import TaskType
-        from ember.core.utils.data.registry import UNIFIED_REGISTRY
 
         # Create a clean test registry
         test_registry = UnifiedDatasetRegistry()

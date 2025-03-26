@@ -5,12 +5,8 @@ This module verifies that structured logging operates correctly
 with expected context propagation and performance optimizations.
 """
 
-import logging
-import time
 import unittest
-from unittest.mock import MagicMock, Mock, patch
-
-import pytest
+from unittest.mock import Mock, patch
 
 from ember.xcs.utils.structured_logging import (
     LoggingConfig,
@@ -22,7 +18,6 @@ from ember.xcs.utils.structured_logging import (
     log_context,
     set_context_value,
     time_operation,
-    with_context,
 )
 
 

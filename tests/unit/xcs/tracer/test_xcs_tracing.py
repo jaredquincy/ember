@@ -6,7 +6,6 @@ captures trace records, and restores the original operator methods.
 
 from typing import Any, Dict
 
-import pytest
 from pydantic import BaseModel
 
 from ember.xcs.tracer.tracer_decorator import jit

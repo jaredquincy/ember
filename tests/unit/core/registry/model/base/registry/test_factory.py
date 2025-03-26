@@ -3,7 +3,6 @@
 Tests provider discovery, instantiation, and error handling in the model factory system.
 """
 
-import os
 import sys
 from types import ModuleType
 from typing import Any, Dict, Type

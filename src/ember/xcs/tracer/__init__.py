@@ -3,8 +3,8 @@ from contextlib import contextmanager
 
 from ._context_types import TraceContextData
 from .autograph import AutoGraphBuilder
-from .xcs_tracing import TracerContext, TraceRecord
 from .unified_jit import jit
+from .xcs_tracing import TracerContext, TraceRecord
 
 
 @contextmanager
@@ -28,9 +28,8 @@ def autograph(*args, **kwargs):
 
 
 # Expose individual JIT implementations for backwards compatibility
+from .structural_jit import disable_structural_jit, structural_jit
 from .tracer_decorator import jit as trace_jit
-from .structural_jit import structural_jit, disable_structural_jit
-
 
 __all__ = [
     "TracerContext",

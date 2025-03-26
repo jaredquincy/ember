@@ -2,9 +2,7 @@
 Tests for XCS (eXecution Control System) type definitions.
 """
 
-from typing import Any, Dict, List, Optional, Union
-
-import pytest
+from typing import Any, Dict, List, Optional
 
 from ember.core.types.xcs_types import (
     XCSGraph,

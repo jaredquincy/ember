@@ -52,23 +52,23 @@ Examples:
 """
 
 # Import from the implementation
-from ember.xcs import DeviceMesh  # Device mesh for distribution
-from ember.xcs import ExecutionResult  # Result of execution
-from ember.xcs import JITOptions  # Options for JIT
-from ember.xcs import PartitionSpec  # Partition specification
-from ember.xcs import TraceContextData  # Trace context data
-from ember.xcs import TracerContext  # Context for tracing
-from ember.xcs import TraceRecord  # Record of traces
-from ember.xcs import TransformOptions  # Options for transforms
-from ember.xcs import XCSExecutionOptions  # Options for execution
-from ember.xcs import autograph  # Automatic graph building
-from ember.xcs import execute  # Direct graph execution
-from ember.xcs import jit  # Just-in-time compilation
-from ember.xcs import mesh_sharded  # Sharded execution
-from ember.xcs import pmap  # Parallel mapping
-from ember.xcs import structural_jit  # Structural JIT compilation
-from ember.xcs import vmap  # Vectorized mapping
 from ember.xcs import (
+    DeviceMesh,  # Device mesh for distribution
+    ExecutionResult,  # Result of execution
+    JITOptions,  # Options for JIT
+    PartitionSpec,  # Partition specification
+    TraceContextData,  # Trace context data
+    TracerContext,  # Context for tracing
+    TraceRecord,  # Record of traces
+    TransformOptions,  # Options for transforms
+    XCSExecutionOptions,  # Options for execution
+    autograph,  # Automatic graph building
+    execute,  # Direct graph execution
+    jit,  # Just-in-time compilation
+    mesh_sharded,  # Sharded execution
+    pmap,  # Parallel mapping
+    structural_jit,  # Structural JIT compilation
+    vmap,  # Vectorized mapping
     xcs,  # Core execution framework; Core functions; Transforms; Tracing; Types; XCS core interface
 )
 

@@ -8,7 +8,7 @@ principle of "avoid overmocking" from CLAUDE.md guidelines.
 
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union
 
 # Setup logger
 logger = logging.getLogger(__name__)

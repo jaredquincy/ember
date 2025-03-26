@@ -7,10 +7,9 @@ and consistent logging.
 """
 
 import logging
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Optional
 
 from ember.core.config.manager import ConfigManager, create_config_manager
-from ember.core.config.schema import EmberConfig
 from ember.core.exceptions import EmberError
 from ember.core.registry.model.base.registry.model_registry import ModelRegistry
 from ember.core.registry.model.base.schemas.cost import ModelCost, RateLimit

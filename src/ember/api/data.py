@@ -30,7 +30,7 @@ Examples:
             ]
 """
 
-from typing import Any, Dict, Generic, List, Optional, Type, TypeVar, Union
+from typing import Any, Dict, Generic, List, Optional, TypeVar, Union
 
 from ember.core.utils.data.base.config import BaseDatasetConfig as DatasetConfig
 

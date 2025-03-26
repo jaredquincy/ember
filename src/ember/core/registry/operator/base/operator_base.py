@@ -40,13 +40,11 @@ import abc
 import logging
 from typing import ClassVar, Generic, Optional, Type, cast
 
-from ember.core.registry.operator.base._module import EmberModule
 from ember.core.exceptions import (
-    OperatorError,
     OperatorExecutionError,
     OperatorSpecificationError,
-    SpecificationValidationError,
 )
+from ember.core.registry.operator.base._module import EmberModule
 from ember.core.registry.specification.specification import Specification
 from ember.core.types import InputT, OutputT
 

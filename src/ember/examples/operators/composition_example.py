@@ -15,20 +15,11 @@ To run:
 
 import logging
 import time
-from typing import Any, Callable, ClassVar, Dict, List, Optional, Type, TypeVar, cast
+from typing import Any, Callable, ClassVar, Dict, List, Type, TypeVar
 
 from prettytable import PrettyTable
-from pydantic import BaseModel
 
 # ember API imports
-from ember.api import models
-from ember.api.models import (
-    ModelCost,
-    ModelInfo,
-    ModelRegistry,
-    ProviderInfo,
-    RateLimit,
-)
 from ember.core import non
 from ember.core.registry.model.model_module.lm import LMModule, LMModuleConfig
 from ember.core.registry.operator.base.operator_base import Operator
@@ -372,7 +363,7 @@ def main() -> None:
                 else f'Final answer: "{final_answer}"'
             )
             print(f"Time: {elapsed:.4f}s")
-            print(f"Execution mode: Sequential scheduler")
+            print("Execution mode: Sequential scheduler")
 
             # Store in table
             table.add_row(

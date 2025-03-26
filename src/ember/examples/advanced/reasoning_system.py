@@ -14,7 +14,6 @@ To run:
     uv run python src/ember/examples/advanced/reasoning_system.py
 """
 
-from dataclasses import dataclass, field
 from typing import Any, ClassVar, Dict, List, Optional, Type
 
 # Ember API imports

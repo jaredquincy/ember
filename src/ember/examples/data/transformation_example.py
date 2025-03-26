@@ -12,7 +12,6 @@ import argparse
 import multiprocessing
 import sys
 import threading
-import time
 from time import perf_counter
 from typing import Any, Callable, Dict, List, Optional, Tuple, Type
 
@@ -30,7 +29,6 @@ from ember.xcs.transforms import (
     DeviceMesh,
     PartitionSpec,
     mesh_sharded,
-    pjit,
     pmap,
     vmap,
 )
@@ -448,7 +446,7 @@ def demonstrate_pmap() -> None:
         # Highlight significant speedups
         if speedup > 1.5:
             print(f"🚀 SIGNIFICANT SPEEDUP ACHIEVED: {speedup:.2f}x faster!")
-            print(f"Parallel processing is effectively using multiple CPU cores!")
+            print("Parallel processing is effectively using multiple CPU cores!")
 
             # Calculate efficiency relative to theoretical maximum
             theoretical_max = min(cpu_count, batch_size)

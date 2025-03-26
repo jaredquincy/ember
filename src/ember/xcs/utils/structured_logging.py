@@ -24,7 +24,6 @@ Performance optimization features:
 """
 
 import functools
-import inspect
 import logging
 import random
 import sys
@@ -36,16 +35,11 @@ from typing import (
     Any,
     Callable,
     Dict,
-    Generic,
-    List,
     Optional,
-    Protocol,
-    Set,
     Tuple,
     TypeVar,
     Union,
     cast,
-    overload,
 )
 
 # Type variables for more precise typing
@@ -664,9 +658,7 @@ def enrich_exception(exception: Exception, **context: Any) -> Exception:
     combined_context.update(context)
 
     # If exception already supports context, add directly
-    if hasattr(exception, "add_context") and callable(
-        getattr(exception, "add_context")
-    ):
+    if hasattr(exception, "add_context") and callable(exception.add_context):
         exception.add_context(**combined_context)
         return exception
 

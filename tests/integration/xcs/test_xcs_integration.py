@@ -4,7 +4,6 @@ Tests that verify the complete XCS tracing and execution pipeline
 with various transforms and graph patterns. Uses minimal test doubles.
 """
 
-from typing import Any, Callable, Dict, List
 
 import numpy as np
 import pytest

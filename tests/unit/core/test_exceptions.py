@@ -5,9 +5,6 @@ This module verifies the behavior of the unified exception system.
 """
 
 import logging
-from typing import Any, Dict, List, Optional
-
-import pytest
 
 from ember.core.exceptions import (
     DataValidationError,

@@ -7,13 +7,10 @@ output contains expected verification details.
 """
 
 import logging
-import os
-from typing import Any, Callable, Dict, List, Optional, Type, Union
+from typing import Any, Dict, List, Optional
 
 import pytest
-from pydantic import Field
 
-from ember.core.app_context import create_ember_app
 from ember.core.exceptions import ModelNotFoundError, ProviderAPIError
 from ember.core.registry.model.base.registry.model_registry import ModelRegistry
 from ember.core.registry.model.base.schemas.cost import ModelCost, RateLimit
@@ -195,7 +192,7 @@ def test_multi_stage_pipeline_integration() -> None:
     # Create LM modules with simulation enabled
     lm_modules = [
         LMModule(
-            config=LMModuleConfig(id=f"openai:gpt-3.5-turbo", temperature=0.7),
+            config=LMModuleConfig(id="openai:gpt-3.5-turbo", temperature=0.7),
             simulate_api=True,
         )
         for _ in range(3)

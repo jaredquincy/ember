@@ -7,9 +7,6 @@ transform test modules.
 
 import os
 
-import pytest
-
-
 # Note: The --run-perf-tests option is now defined in the root conftest.py
 
 

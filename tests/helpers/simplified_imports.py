@@ -33,7 +33,7 @@ try:
 
 except ImportError:
     # If direct imports fail, use minimal stubs for simplified import testing
-    from typing import Any, Dict, Generic, List, Optional, TypeVar
+    from typing import Any, Dict, Generic, List, TypeVar
 
     from pydantic import BaseModel
 

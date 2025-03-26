@@ -15,7 +15,7 @@ All exceptions follow these design principles:
 
 import inspect
 import logging
-from typing import Any, ClassVar, Dict, List, Optional, Type, TypedDict, Union
+from typing import Any, ClassVar, Dict, List, Optional, TypedDict
 
 # Error Code Ranges (reserved spaces for different modules)
 # 1000-1999: Core Framework

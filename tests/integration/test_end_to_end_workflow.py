@@ -6,16 +6,11 @@ in an integrated manner using real components and interfaces.
 """
 
 import logging
-import os
-from typing import Annotated, Any, Dict, List, Optional, Type, Union
+from typing import Any, Dict, List, Type
 
 import pytest
-from pydantic import Field
 
 # Core components
-from ember.core.app_context import create_ember_app
-from ember.core.registry.model.base.services.model_service import ModelService
-
 # Model components
 from ember.core.registry.model.model_module.lm import LMModule, LMModuleConfig
 from ember.core.registry.operator.base._module import static_field

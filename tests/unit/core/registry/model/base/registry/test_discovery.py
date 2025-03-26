@@ -9,13 +9,12 @@ This module tests the ModelDiscoveryService which is responsible for:
 """
 
 import asyncio
-import concurrent.futures
 import os
 import sys
 import threading
 import time
 import types
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, Dict, Optional, cast
 from unittest.mock import MagicMock, patch
 
 import pytest

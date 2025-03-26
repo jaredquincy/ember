@@ -59,19 +59,20 @@ Examples:
 from __future__ import annotations
 
 import importlib.metadata
-import logging
-from typing import Any, Dict, Optional, Union
+from typing import Dict, Optional, Union
 
 # Import primary API components - these are the only public interfaces
-from ember.api import data  # Dataset access (datasets("mmlu"), etc.)
-from ember.api import models  # Language model access (models.openai.gpt4, etc.)
-from ember.api import non  # Network of Networks patterns (non.UniformEnsemble, etc.)
-from ember.api import operators  # Operator registry (operators.get_operator(), etc.)
-from ember.api import xcs  # Execution optimization (xcs.jit, etc.)
+from ember.api import (
+    data,  # Dataset access (datasets("mmlu"), etc.)
+    models,  # Language model access (models.openai.gpt4, etc.)
+    non,  # Network of Networks patterns (non.UniformEnsemble, etc.)
+    operators,  # Operator registry (operators.get_operator(), etc.)
+    xcs,  # Execution optimization (xcs.jit, etc.)
+)
 
 # Import necessary components for initialization
 from ember.core.app_context import EmberAppContext, EmberContext, create_ember_app
-from ember.core.config.manager import ConfigManager, create_config_manager
+from ember.core.config.manager import create_config_manager
 from ember.core.registry.model.base.registry.model_registry import ModelRegistry
 from ember.core.utils.logging import configure_logging, set_component_level
 

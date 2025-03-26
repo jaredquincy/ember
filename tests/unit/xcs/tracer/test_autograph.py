@@ -5,9 +5,7 @@ for automatically building XCS graphs from execution traces.
 """
 
 import unittest
-from typing import Any, Dict, List
 
-from ember.xcs.graph.xcs_graph import XCSGraph
 from ember.xcs.tracer.autograph import AutoGraphBuilder
 from ember.xcs.tracer.xcs_tracing import TraceRecord
 

@@ -5,8 +5,8 @@ This module provides access to the XCS functions and classes through the simplif
 specifically for testing the simplified import mechanism.
 """
 
-from ember.xcs.transforms.mesh import DeviceMesh, PartitionSpec, mesh_sharded
-from ember.xcs.transforms.pmap import pjit, pmap
+from ember.xcs.transforms.mesh import DeviceMesh, mesh_sharded
+from ember.xcs.transforms.pmap import pmap
 
 # Import transform functions directly from their implementation modules
 from ember.xcs.transforms.vmap import vmap

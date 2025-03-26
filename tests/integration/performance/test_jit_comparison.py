@@ -5,21 +5,19 @@ This module compares regular JIT (based on execution tracing) with structural JI
 performance for different operator patterns.
 """
 
-import time
-import statistics
 import logging
-from typing import Any, ClassVar, Dict, List, Optional
+import statistics
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-
-import pytest
+from typing import ClassVar, List
 
 from ember.core.registry.operator.base.operator_base import Operator
 from ember.core.registry.specification.specification import Specification
 from ember.core.types.ember_model import EmberModel, Field
+from ember.xcs.tracer.structural_jit import structural_jit
 
 # Import JIT implementations
 from ember.xcs.tracer.tracer_decorator import jit
-from ember.xcs.tracer.structural_jit import structural_jit
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
@@ -389,8 +387,8 @@ def test_jit_comparison():
     )
 
     # Save results to file
-    import json
     import datetime
+    import json
     import os
 
     # Create results directory if it doesn't exist

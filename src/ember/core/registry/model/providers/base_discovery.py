@@ -33,7 +33,7 @@ Typical usage example:
 from abc import ABC, abstractmethod
 from typing import Any, Dict
 
-from ember.core.exceptions import ModelDiscoveryError, NotImplementedFeatureError
+from ember.core.exceptions import NotImplementedFeatureError
 
 
 class BaseDiscoveryProvider(ABC):

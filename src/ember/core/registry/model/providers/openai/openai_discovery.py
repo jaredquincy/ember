@@ -10,7 +10,6 @@ import logging
 import os
 from typing import Any, Dict, List, Optional
 
-import openai
 from openai import APIError, OpenAI
 
 from ember.core.registry.model.providers.base_discovery import (

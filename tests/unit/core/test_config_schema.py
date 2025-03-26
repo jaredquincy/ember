@@ -3,10 +3,6 @@
 This module tests the data structures and helpers in the configuration system.
 """
 
-from unittest.mock import MagicMock
-
-import pytest
-
 
 # Mock Pydantic BaseModel for testing
 class BaseModel:

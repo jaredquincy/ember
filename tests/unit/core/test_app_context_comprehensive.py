@@ -4,23 +4,17 @@ Comprehensive tests for the ember.core.app_context module.
 This module tests the EmberAppContext, EmberContext and related functions.
 """
 
-import logging
-import signal
 import threading
-from unittest.mock import ANY, MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from ember.core.app_context import (
     EmberAppContext,
     EmberContext,
-    _initialize_api_keys_from_env,
     create_ember_app,
     get_ember_context,
 )
-from ember.core.registry.model.base.registry.model_registry import ModelRegistry
-from ember.core.registry.model.base.services.usage_service import UsageService
-from ember.core.registry.model.initialization import initialize_registry
 
 
 class TestEmberAppContext:

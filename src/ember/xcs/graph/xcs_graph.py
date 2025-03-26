@@ -25,8 +25,8 @@ Example:
 
 import dataclasses
 import uuid
-from collections import defaultdict, deque
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, TypeVar, Union, cast
+from collections import deque
+from typing import Any, Callable, Dict, List, Optional
 
 
 @dataclasses.dataclass

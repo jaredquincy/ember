@@ -6,7 +6,7 @@ embedded within the core type system. Moving these utilities to the test directo
 follows proper separation of concerns between test and production code.
 """
 
-from typing import Any, Dict, List, Optional, Type, cast
+from typing import Any, Dict, List, Optional, Type
 
 
 class SimpleClass:

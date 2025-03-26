@@ -21,26 +21,20 @@ Examples:
 """
 
 # Import from the implementation
-from ember.core.non import EnsembleInputs  # Inputs for ensemble operators
-from ember.core.non import (
-    JudgeSynthesis,  # Use a judge to synthesize multiple responses
-)
-from ember.core.non import JudgeSynthesisOutputs  # Judge I/O
-from ember.core.non import MostCommon  # Select most common answer from ensemble
-from ember.core.non import Sequential  # Chain operators in sequence
-from ember.core.non import (
-    UniformEnsemble,  # Generate multiple responses with identical models
-)
-from ember.core.non import (
-    VariedEnsemble,  # Generate responses with varied model configurations
-)
-from ember.core.non import VariedEnsembleOutputs  # Varied Ensemble I/O
-from ember.core.non import Verifier  # Verify answers for correctness
-from ember.core.non import VerifierOutputs  # Verifier I/O
 from ember.core.non import (  # Operator patterns; Input/Output types
+    EnsembleInputs,  # Inputs for ensemble operators
+    JudgeSynthesis,  # Use a judge to synthesize multiple responses
     JudgeSynthesisInputs,
+    JudgeSynthesisOutputs,  # Judge I/O
+    MostCommon,  # Select most common answer from ensemble
+    Sequential,  # Chain operators in sequence
+    UniformEnsemble,  # Generate multiple responses with identical models
+    VariedEnsemble,  # Generate responses with varied model configurations
     VariedEnsembleInputs,
+    VariedEnsembleOutputs,  # Varied Ensemble I/O
+    Verifier,  # Verify answers for correctness
     VerifierInputs,
+    VerifierOutputs,  # Verifier I/O
 )
 
 __all__ = [

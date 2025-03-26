@@ -5,7 +5,6 @@ This module verifies that the simplified import patterns work as expected.
 """
 
 import unittest
-from typing import Any, Callable, Dict, List
 
 # Try using the simplified import structure
 try:
@@ -62,16 +61,8 @@ except ImportError as e:
         # As a last resort, use our stub implementations for testing
         print("Core XCS imports also failed. Using stub implementations for testing.")
         from tests.helpers.simplified_xcs_imports import (
-            DeviceMesh,
-            ExecutionResult,
             JITOptions,
-            PartitionSpec,
-            TracerContext,
-            TraceRecord,
-            TransformOptions,
             XCSExecutionOptions,
-            autograph,
-            execute,
             jit,
             pmap,
             vmap,

@@ -6,19 +6,14 @@ transformations in XCS. Tests cover basic functionality, edge cases, error handl
 and integration with different operator types.
 """
 
-import multiprocessing
-import random
 import threading
 import time
-from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
-from unittest.mock import MagicMock, patch
+from typing import Any, Dict
 
 import numpy as np
 import pytest
 
 from ember.xcs.engine.xcs_engine import (
-    TopologicalSchedulerWithParallelDispatch,
     execute_graph,
 )
 from ember.xcs.graph.xcs_graph import XCSGraph
@@ -30,9 +25,10 @@ from tests.unit.xcs.transforms.mock_operators import (
     BasicOperator,
     ComplexInputOperator,
     ExceptionOperator,
+    NestedOperator,
+    StatefulOperator,
 )
 from tests.unit.xcs.transforms.mock_operators import MockModule as ModuleOperator
-from tests.unit.xcs.transforms.mock_operators import NestedOperator, StatefulOperator
 
 # Import directly from our fixed imports module to avoid 'module is not callable' errors
 from tests.unit.xcs.transforms.test_transform_imports import (

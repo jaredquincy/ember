@@ -1,7 +1,5 @@
 from typing import Optional
 
-import pytest
-
 from tests.helpers.simplified_imports import EmberModel
 
 

@@ -15,11 +15,10 @@ import logging
 import os
 import threading
 from threading import Lock
-from typing import Any, ClassVar, Dict, Optional, Type
+from typing import Any, ClassVar, Optional
 
 from ember.core.config.manager import ConfigManager, create_config_manager
 from ember.core.registry.model.base.registry.model_registry import ModelRegistry
-from ember.core.registry.model.base.services.model_service import ModelService
 from ember.core.registry.model.base.services.usage_service import UsageService
 from ember.core.registry.model.initialization import initialize_registry
 from ember.core.utils.logging import configure_logging

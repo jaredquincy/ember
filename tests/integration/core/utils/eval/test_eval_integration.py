@@ -20,7 +20,6 @@ except ImportError:
         print(f"Import error: {e}")
         raise
 
-import pytest
 
 # Continue with the rest of the imports
 try:

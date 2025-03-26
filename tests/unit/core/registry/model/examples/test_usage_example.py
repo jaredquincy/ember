@@ -3,8 +3,7 @@ Unit tests for the usage_example script.
 """
 
 import logging
-from typing import Any, Dict
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 

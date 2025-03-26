@@ -1,6 +1,5 @@
 """Unit tests for ModelEnum and parse_model_str functionality."""
 
-import pytest
 
 from ember.core.registry.model.config.model_enum import (
     AnthropicModelEnum,

@@ -5,7 +5,6 @@ This module tests that Operator subclasses don't need to call super().__init__()
 """
 
 import unittest
-from typing import Any, Dict
 
 from ember.core.registry.operator.base._module import ember_field
 from ember.core.registry.operator.base.operator_base import Operator

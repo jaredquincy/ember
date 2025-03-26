@@ -7,19 +7,16 @@ similarity metrics, and text similarity calculations.
 
 import math
 import string
-from typing import Callable, List, Optional
-from unittest.mock import MagicMock, Mock
+from unittest.mock import MagicMock
 
 import hypothesis
 import pytest
-from hypothesis import assume, given, note
+from hypothesis import assume, given
 from hypothesis import strategies as st
 
 from ember.core.utils.embedding_utils import (
     CosineSimilarity,
-    EmbeddingModel,
     MockEmbeddingModel,
-    SimilarityMetric,
     calculate_text_similarity,
 )
 
@@ -229,7 +226,6 @@ def test_main_block_coverage():
     # To ensure we cover the __main__ block in the embedding_utils.py file,
     # we'll temporarily monkey patch the __name__ variable and import the module
     import io
-    import sys
 
     # Use a sys.modules hack to force a reload of the module with __name__ = "__main__"
     import types

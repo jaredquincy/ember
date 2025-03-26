@@ -11,22 +11,22 @@ on realistic nested operator structures that mimic production use cases, particu
 The tests use proper operators structured according to Ember conventions.
 """
 
-import time
-import statistics
 import logging
-from typing import Any, ClassVar, Dict, List, Optional, Tuple, Type, Union
-from dataclasses import dataclass, field
+import statistics
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from dataclasses import dataclass, field
+from typing import Any, ClassVar, Dict, List
 
 import pytest
 
-from ember.core.types.ember_model import EmberModel
 from ember.core.registry.operator.base.operator_base import Operator
 from ember.core.registry.specification.specification import Specification
+from ember.core.types.ember_model import EmberModel
+from ember.xcs.tracer.structural_jit import structural_jit
 
 # Import JIT implementations directly
 from ember.xcs.tracer.tracer_decorator import jit
-from ember.xcs.tracer.structural_jit import structural_jit
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -164,8 +164,8 @@ def save_benchmark_results(
         results: List of benchmark results
         speedups: Dictionary mapping benchmark names to speedup factors
     """
-    import json
     import datetime
+    import json
     import os
 
     # Create a results directory if it doesn't exist

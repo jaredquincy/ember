@@ -18,23 +18,22 @@ The benchmarks compare:
 Results are analyzed to verify expected speedups and reported in a consistent format.
 """
 
-import time
-import statistics
-import os
-from typing import Any, Dict, List, Optional, Type, Union, ClassVar, Callable
-import concurrent.futures
 import logging
+import os
+import statistics
+import time
 from dataclasses import dataclass, field
+from typing import Any, Callable, ClassVar, Dict, List, Optional
 
 import pytest
 
-from ember.core.types.ember_model import EmberModel
 from ember.core.registry.operator.base.operator_base import Operator
 from ember.core.registry.specification.specification import Specification
+from ember.core.types.ember_model import EmberModel
+from ember.xcs.tracer.structural_jit import structural_jit
 
 # Import JIT implementations directly from source
 from ember.xcs.tracer.tracer_decorator import jit
-from ember.xcs.tracer.structural_jit import structural_jit
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -201,8 +200,8 @@ def save_benchmark_results(
         benchmarks: List of benchmark results
         speedups: Dictionary mapping benchmark names to speedup factors
     """
-    import json
     import datetime
+    import json
     import os
 
     # Create a results directory if it doesn't exist

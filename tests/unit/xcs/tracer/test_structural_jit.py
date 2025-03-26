@@ -6,24 +6,20 @@ ensuring it correctly analyzes operator structure, builds execution graphs,
 and produces expected outputs.
 """
 
-import pytest
-from typing import Any, Dict, List, Optional, Type, TypeVar, Union, ClassVar
-from dataclasses import dataclass, field
 
-from ember.core.types.ember_model import EmberModel
+import pytest
+
 from ember.core.registry.operator.base.operator_base import Operator
 from ember.core.registry.specification.specification import Specification
+from ember.core.types.ember_model import EmberModel
 
 # Import directly from implementation
 from ember.xcs.tracer.structural_jit import (
-    structural_jit,
     ExecutionConfig,
     _analyze_operator_structure,
-    OperatorStructureGraph,
-    disable_structural_jit,
     get_scheduler,
+    structural_jit,
 )
-
 
 # -------------------------------------------------------------------------
 # Test Models
@@ -399,8 +395,8 @@ class TestStructuralJITExecution:
         assert par_result.result == auto_result.result
 
         # Test scheduler selection directly
-        from ember.xcs.engine.xcs_noop_scheduler import XCSNoOpScheduler
         from ember.xcs.engine.xcs_engine import TopologicalSchedulerWithParallelDispatch
+        from ember.xcs.engine.xcs_noop_scheduler import XCSNoOpScheduler
 
         test_graph = seq_op._jit_xcs_graph
 

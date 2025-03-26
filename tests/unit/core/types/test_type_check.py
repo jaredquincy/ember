@@ -2,11 +2,8 @@
 Tests for the type checking utilities.
 """
 
-from typing import Any, Dict, Generic, List, Optional, Tuple, TypeVar, Union
+from typing import Dict, Generic, List, Optional, Tuple, TypeVar, Union
 
-import pytest
-
-from ember.core.types.ember_model import EmberModel
 from ember.core.types.protocols import TypedProtocol, TypeInfo
 from ember.core.types.type_check import (
     type_check,

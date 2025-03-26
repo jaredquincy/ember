@@ -18,7 +18,7 @@ Example usage:
 import logging
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Any, ClassVar, Dict, List, Optional, Tuple, Type
+from typing import ClassVar, List, Optional, Tuple, Type
 
 from ember.api.xcs import jit
 from ember.core.registry.operator.base.operator_base import Operator, Specification

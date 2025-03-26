@@ -45,7 +45,6 @@ from __future__ import annotations
 import functools
 import inspect
 import logging
-import time
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from typing import (
@@ -55,7 +54,6 @@ from typing import (
     List,
     Optional,
     Protocol,
-    Set,
     Tuple,
     Type,
     TypeVar,
@@ -68,12 +66,11 @@ from ember.xcs.engine.xcs_engine import (
     IScheduler,
     TopologicalSchedulerWithParallelDispatch,
     compile_graph,
-    execute_graph,
 )
 from ember.xcs.engine.xcs_noop_scheduler import XCSNoOpScheduler
 
 # Import XCS components
-from ember.xcs.graph.xcs_graph import XCSGraph, XCSNode
+from ember.xcs.graph.xcs_graph import XCSGraph
 
 # Logger for this module
 logger = logging.getLogger(__name__)
@@ -544,7 +541,7 @@ def structural_jit(
     def decorator(cls: Type[OperatorType]) -> Type[OperatorType]:
         """Inner decorator applied to operator class."""
         # Verify interface compatibility
-        if not hasattr(cls, "__call__") or not callable(getattr(cls, "__call__")):
+        if not callable(cls) or not callable(cls.__call__):
             raise TypeError("@structural_jit requires a class with __call__ method")
 
         # Create execution config once

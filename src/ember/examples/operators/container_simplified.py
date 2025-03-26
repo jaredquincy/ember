@@ -9,7 +9,7 @@ To run:
 
 import logging
 import time
-from typing import Any, ClassVar, Dict, List, Optional, Type
+from typing import ClassVar, Type
 
 from pydantic import Field
 
@@ -195,7 +195,7 @@ def main() -> None:
     print("\nProcessing Steps:")
     print(f"1. Normalization: '{input_text2}' -> '{normalized_text2}'")
     print(f"2. Enhancement: '{normalized_text2}' -> '{enhanced_text2}'")
-    print(f"Note: Second run is typically faster due to cached execution")
+    print("Note: Second run is typically faster due to cached execution")
 
 
 if __name__ == "__main__":

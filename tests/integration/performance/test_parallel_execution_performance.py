@@ -7,26 +7,25 @@ src/ember/examples/basic/simple_jit_demo.py.
 """
 
 import logging
+import statistics
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, ClassVar, Dict, List, Optional
-import statistics
 
 import pytest
 
 from ember.core.registry.operator.base.operator_base import Operator
 from ember.core.registry.specification.specification import Specification
 from ember.core.types.ember_model import EmberModel
-
-# Import JIT implementations
-from ember.xcs.tracer.tracer_decorator import jit
-from ember.xcs.engine.execution_options import execution_options
 from ember.xcs.engine.xcs_engine import (
     TopologicalSchedulerWithParallelDispatch,
     compile_graph,
 )
 from ember.xcs.engine.xcs_noop_scheduler import XCSNoOpScheduler
 from ember.xcs.graph.xcs_graph import XCSGraph
+
+# Import JIT implementations
+from ember.xcs.tracer.tracer_decorator import jit
 from ember.xcs.tracer.xcs_tracing import TracerContext
 
 # Configure logging

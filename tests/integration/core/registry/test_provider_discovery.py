@@ -118,7 +118,6 @@ class TestProviderDiscoveryIntegration:
 
     def test_model_registry_with_timeout(self):
         """Test that the ModelRegistry discovery has proper timeout handling."""
-        import time
 
         # Create registry
         registry = ModelRegistry()

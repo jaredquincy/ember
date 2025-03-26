@@ -8,8 +8,6 @@ import unittest
 from typing import Any
 from unittest import mock
 
-import pytest
-
 # Print current path for debugging
 print(f"Python path: {sys.path}")
 print(f"Current directory: {os.getcwd()}")
@@ -39,7 +37,7 @@ except ImportError:
 try:
     from ember.core.utils.eval.extractors import RegexExtractor
 except ImportError:
-    from ember.core.utils.eval.extractors import RegexExtractor
+    pass
 
 
 class TestComposedEvaluator(unittest.TestCase):

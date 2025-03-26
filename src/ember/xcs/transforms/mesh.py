@@ -25,7 +25,6 @@ from typing import (
 
 import numpy as np
 
-
 from ember.core.exceptions import TransformError
 
 

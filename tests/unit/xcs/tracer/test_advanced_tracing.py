@@ -16,7 +16,6 @@ from typing import Any, Dict, List, Type
 import pytest
 from pydantic import BaseModel
 
-from ember.core.registry.operator.exceptions import OperatorExecutionError
 from ember.xcs.engine.xcs_engine import (
     TopologicalSchedulerWithParallelDispatch,
     compile_graph,

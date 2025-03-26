@@ -10,21 +10,17 @@ from __future__ import annotations
 import json
 from typing import (
     Any,
-    ClassVar,
     Dict,
-    List,
-    Optional,
     Type,
     TypeVar,
-    Union,
     cast,
     get_type_hints,
 )
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict
 
 # Import locally to avoid circular imports
-from .protocols import Serializable, TypedProtocol, TypeInfo
+from .protocols import TypeInfo
 
 T = TypeVar("T", bound="EmberModel")
 

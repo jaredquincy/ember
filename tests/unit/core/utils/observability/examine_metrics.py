@@ -3,8 +3,6 @@
 Script to examine metrics objects structure for testing.
 """
 
-import inspect
-import pprint
 
 from prometheus_client import CollectorRegistry, Counter, Histogram
 

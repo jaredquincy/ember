@@ -266,7 +266,7 @@ except ImportError as e:
                 instance = func(*args, **kwargs)
 
                 # If the class has a __call__ method, wrap it to handle keyword arguments correctly
-                if hasattr(instance, "__call__") and callable(instance.__call__):
+                if callable(instance) and callable(instance.__call__):
                     # Store the original __call__ method
                     orig_call = instance.__call__
 
@@ -441,7 +441,6 @@ except ImportError as e:
 
 # Check if we are running in a test environment
 import os
-import sys
 
 # Better test environment detection
 in_test_env = (

@@ -447,7 +447,7 @@ class ModelDiscoveryService:
                 return {
                     "success": False,
                     "provider": provider_name,
-                    "error": f"Timeout after 15 seconds",
+                    "error": "Timeout after 15 seconds",
                 }
             except Exception as e:
                 logger.error(f"Error in async fetch from {provider_name}: {e}")

@@ -5,7 +5,6 @@ This example shows how to use the new top-level imports for operators and NON co
 """
 
 from ember.non import JudgeSynthesis, Sequential, UniformEnsemble
-from ember.operator import Operator
 
 # Create an ensemble with 3 identical models
 ensemble = UniformEnsemble(num_units=3, model_name="openai:gpt-4o", temperature=1.0)
