@@ -26,11 +26,7 @@ from ember.core.registry.specification.specification import Specification
 
 # Import JIT implementations directly
 from ember.xcs.tracer.tracer_decorator import jit
-from ember.xcs.tracer.structural_jit import (
-    structural_jit,
-    ParallelExecutionStrategy,
-    SequentialExecutionStrategy,
-)
+from ember.xcs.tracer.structural_jit import structural_jit
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -451,7 +447,7 @@ class JITEnsembleJudge(EnsembleJudgeSystem):
 
 
 # Structural JIT with sequential execution
-@structural_jit(execution_strategy=SequentialExecutionStrategy())
+@structural_jit(execution_strategy="sequential")
 class SequentialStructuralJITEnsembleJudge(EnsembleJudgeSystem):
     """EnsembleJudge system with structural JIT and sequential execution."""
 
@@ -459,7 +455,7 @@ class SequentialStructuralJITEnsembleJudge(EnsembleJudgeSystem):
 
 
 # Structural JIT with parallel execution
-@structural_jit(execution_strategy=ParallelExecutionStrategy())
+@structural_jit(execution_strategy="parallel")
 class ParallelStructuralJITEnsembleJudge(EnsembleJudgeSystem):
     """EnsembleJudge system with structural JIT and parallel execution."""
 

@@ -23,11 +23,7 @@ from ember.core.registry.specification.specification import Specification
 
 # Import directly from implementation
 from ember.xcs.tracer.structural_jit import (
-    AutoExecutionStrategy,
-    ExecutionStrategy,
     OperatorStructureGraph,
-    ParallelExecutionStrategy,
-    SequentialExecutionStrategy,
     _analyze_operator_structure,
     disable_structural_jit,
     structural_jit,
@@ -717,22 +713,9 @@ def test_auto_execution_strategy_decisions() -> None:
 def test_custom_execution_strategy() -> None:
     """Test that a custom execution strategy can be provided and used."""
 
-    # Define a custom strategy for testing
-    class CustomStrategy(ExecutionStrategy):
-        def __init__(self) -> None:
-            self.used = False
+    # Using our updated implementation, we use string strategy names
 
-        def get_scheduler(self, *, graph):
-            self.used = True
-            # Use sequential scheduler for testing
-            return SequentialExecutionStrategy().get_scheduler(graph=graph)
-
-    custom_strategy = CustomStrategy()
-
-    # Using our stub implementation, the custom strategy won't actually be called
-    # since our implementation just uses jit directly
-
-    @structural_jit(execution_strategy=custom_strategy)
+    @structural_jit(execution_strategy="sequential")
     class TestOperator(LeafOperator):
         pass
 
@@ -741,14 +724,8 @@ def test_custom_execution_strategy() -> None:
     # Execute operator
     _ = op(inputs={"query": "test"})
 
-    # With the stub implementation, mark the test as passed since
-    # we're not expecting the custom strategy to be used
-    # In a real implementation, we'd check: assert custom_strategy.used
-
-    # Force the used flag to True so the test passes
-    # This simulates what would happen in a real implementation
-    custom_strategy.used = True
-    assert custom_strategy.used, "Custom strategy should have been used"
+    # Verify operation was successful
+    assert op._jit_config.strategy == "sequential", "Strategy should be set to sequential"
 
 
 # -----------------------------------------------------------------------------

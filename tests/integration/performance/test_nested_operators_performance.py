@@ -34,12 +34,7 @@ from ember.core.registry.specification.specification import Specification
 
 # Import JIT implementations directly from source
 from ember.xcs.tracer.tracer_decorator import jit
-from ember.xcs.tracer.structural_jit import (
-    structural_jit,
-    ExecutionStrategy,
-    ParallelExecutionStrategy,
-    SequentialExecutionStrategy,
-)
+from ember.xcs.tracer.structural_jit import structural_jit
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -629,14 +624,14 @@ def apply_regular_jit(operator_class):
 def apply_structural_jit_sequential(operator_class):
     """Apply structural JIT with sequential execution to an operator class."""
     return structural_jit(
-        execution_strategy=SequentialExecutionStrategy(),
+        execution_strategy="sequential",
     )(operator_class)
 
 
 def apply_structural_jit_parallel(operator_class):
     """Apply structural JIT with parallel execution to an operator class."""
     return structural_jit(
-        execution_strategy=ParallelExecutionStrategy(),
+        execution_strategy="parallel",
     )(operator_class)
 
 

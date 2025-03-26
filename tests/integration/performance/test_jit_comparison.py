@@ -19,7 +19,7 @@ from ember.core.types.ember_model import EmberModel, Field
 
 # Import JIT implementations
 from ember.xcs.tracer.tracer_decorator import jit
-from ember.xcs.tracer.structural_jit import structural_jit, ParallelExecutionStrategy
+from ember.xcs.tracer.structural_jit import structural_jit
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
@@ -199,7 +199,7 @@ class StructuralJITEnsembleOperator(EnsembleOperator):
 
 
 # Structural JIT with explicit parallel execution
-@structural_jit(execution_strategy=ParallelExecutionStrategy())
+@structural_jit(execution_strategy="parallel")
 class ParallelStructuralJITEnsembleOperator(EnsembleOperator):
     """Ensemble operator with structural JIT and explicit parallel execution.
 
