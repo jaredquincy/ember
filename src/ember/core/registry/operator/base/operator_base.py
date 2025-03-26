@@ -59,7 +59,8 @@ class Operator(EmberModule, abc.ABC, Generic[InputT, OutputT]):
     """
     Abstract base class for all computational operators in Ember.
 
-    Operators are immutable, validated transformations from typed inputs to typed outputs.
+    Operators are immutable, validated transformations from typed inputs to typed
+    outputs.
     Subclasses implement the forward() method with their core logic, while this base
     class handles input/output validation and error management.
 
@@ -67,8 +68,8 @@ class Operator(EmberModule, abc.ABC, Generic[InputT, OutputT]):
     while forward() provides the specific implementation.
 
     Attributes:
-        specification: ClassVar[Specification[InputT, OutputT]]: Defines the input/output contract
-            that all subclasses must provide.
+        specification: ClassVar[Specification[InputT, OutputT]]: Defines the input/output
+            contract that all subclasses must provide.
     """
 
     # Class variable to be overridden by subclasses
@@ -101,7 +102,8 @@ class Operator(EmberModule, abc.ABC, Generic[InputT, OutputT]):
         Optimizations:
         - forward() can assume inputs are valid (already validated by __call__)
         - Type conversions should happen here rather than in caller
-        - Complex computations can be memoized (though instances should remain immutable)
+        - Complex computations can be memoized (though instances should remain
+          immutable)
 
         Args:
             inputs: Validated input data guaranteed to conform to the operator's
@@ -113,7 +115,8 @@ class Operator(EmberModule, abc.ABC, Generic[InputT, OutputT]):
 
         Raises:
             NotImplementedError: Abstract method that must be implemented by subclasses.
-            OperatorExecutionError: For any errors during computation (will be caught and wrapped)
+            OperatorExecutionError: For any errors during computation (will be caught
+                and wrapped)
         """
         raise NotImplementedError("Subclasses must implement forward()")
 
@@ -164,15 +167,17 @@ class Operator(EmberModule, abc.ABC, Generic[InputT, OutputT]):
                      calling convention for simple cases.
 
         Returns:
-            The validated computation result conforming to the output model specification.
-            Type checking guarantees this will be an instance of OutputT.
+            The validated computation result conforming to the output model
+            specification. Type checking guarantees this will be an instance of OutputT.
 
         Raises:
             OperatorSpecificationNotDefinedError: If the operator class does not define
                                                 a valid specification class variable.
             SpecificationValidationError: If inputs fail validation against the input model
-                                        or outputs fail validation against the output model.
-            OperatorExecutionError: Wrapper for any exceptions occurring during forward execution.
+                                        or outputs fail validation against the output
+                                        model.
+            OperatorExecutionError: Wrapper for any exceptions occurring during forward
+                                   execution.
         """
         # Retrieve and validate the specification
         try:
@@ -234,7 +239,7 @@ class Operator(EmberModule, abc.ABC, Generic[InputT, OutputT]):
                     message=f"Error executing operator: {str(e)}",
                     cause=e,
                     operator_type=type(self).__module__,
-                )
+                ) from e
             raise
 
     @property

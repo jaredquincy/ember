@@ -42,6 +42,10 @@ except ImportError:
 logger: logging.Logger = logging.getLogger(__name__)
 
 
+# EmberSettings is now defined in ember.core.config.schema
+# to avoid circular imports
+
+
 def _get_provider_api_key(provider):
     """Extract API key from different provider schema versions.
 

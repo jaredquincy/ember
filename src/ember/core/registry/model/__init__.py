@@ -37,8 +37,8 @@ from ember.core.registry.model.base.utils.model_registry_exceptions import (
 )
 from ember.core.registry.model.config.model_enum import ModelEnum, parse_model_str
 
-# Configuration and initialization - moved to avoid circular imports
-from ember.core.registry.model.config.settings import EmberSettings
+# Configuration and initialization - import from core config to avoid circular imports
+from ember.core.config.schema import EmberSettings
 
 # Base provider classes
 from ember.core.registry.model.providers.base_provider import (

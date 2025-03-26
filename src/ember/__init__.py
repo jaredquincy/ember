@@ -59,7 +59,7 @@ Examples:
 from __future__ import annotations
 
 import importlib.metadata
-from typing import Dict, Optional, Union
+from typing import Dict, Optional, Union, Any, Callable
 
 # Import primary API components - these are the only public interfaces
 from ember.api import (
@@ -72,7 +72,7 @@ from ember.api import (
 
 # Import necessary components for initialization
 from ember.core.app_context import EmberAppContext, EmberContext, create_ember_app
-from ember.core.config.manager import create_config_manager
+from ember.core.config.manager import create_config_manager, ConfigManager
 from ember.core.registry.model.base.registry.model_registry import ModelRegistry
 from ember.core.utils.logging import configure_logging, set_component_level
 
@@ -175,6 +175,65 @@ def initialize_ember(
     return registry
 
 
+def init(
+    config: Optional[Union[Dict[str, Any], ConfigManager]] = None,
+    usage_tracking: bool = False,
+) -> Callable:
+    """Initialize Ember and return a unified model service.
+
+    This function provides a simple entry point for initializing Ember and accessing
+    models directly through a callable service object, as shown in the README examples.
+
+    Args:
+        config: Optional configuration to override defaults. Can be a dictionary or a ConfigManager
+        usage_tracking: Whether to enable cost/token tracking
+
+    Returns:
+        A model service that can be called directly with models and prompts
+
+    Examples:
+        # Simple usage
+        service = init()
+        response = service("openai:gpt-4o", "What is the capital of France?")
+
+        # With usage tracking
+        service = init(usage_tracking=True)
+        response = service(models.ModelEnum.gpt_4o, "What is quantum computing?")
+        usage = service.usage_service.get_total_usage()
+    """
+    from ember.api.models import initialize_registry, ModelService, UsageService
+
+    # Initialize configuration if needed
+    config_manager = None
+    if isinstance(config, dict):
+        config_manager = create_config_manager()
+        for key, value in config.items():
+            config_manager.set(key, value)
+    elif isinstance(config, ConfigManager):
+        config_manager = config
+
+    # Initialize the registry with auto-discovery
+    registry = initialize_registry(auto_discover=True, config_manager=config_manager)
+
+    # Create usage service if tracking is enabled
+    usage_service = UsageService() if usage_tracking else None
+
+    # Create a model service that can be called directly
+    service = ModelService(registry=registry, usage_service=usage_service)
+
+    # Create a wrapper that allows direct calling with model ID and prompt
+    def service_wrapper(model_id_or_enum, prompt, **kwargs):
+        return service.invoke_model(model_id_or_enum, prompt, **kwargs)
+
+    # Add service attributes to the wrapper
+    service_wrapper.model_service = service
+    service_wrapper.registry = registry
+    if usage_service:
+        service_wrapper.usage_service = usage_service
+
+    return service_wrapper
+
+
 # Public interface - only export the main API components
 __all__ = [
     "models",  # Language model access
@@ -183,6 +242,7 @@ __all__ = [
     "non",  # Network of Networks patterns
     "xcs",  # Execution optimization
     "initialize_ember",  # Global initialization function
+    "init",  # Simple initialization function (matches README examples)
     "configure_logging",  # Logging configuration utility
     "set_component_level",  # Fine-grained logging control
     "__version__",

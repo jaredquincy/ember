@@ -30,6 +30,7 @@ Examples:
 """
 
 # Import module namespaces
+import ember.api.eval as eval  # Evaluation module
 import ember.api.models as models  # Language model access
 import ember.api.non as non  # Network of Networks patterns
 import ember.api.operators as operators  # Operator system
@@ -38,7 +39,7 @@ import ember.api.types as types
 # Make operators available as both singular and plural for backward compatibility
 operator = operators
 
-# Import direct data API components
+# Import high-level API components
 from ember.api.data import (
     Dataset,  # Dataset container class
     DatasetBuilder,  # Builder pattern for dataset configuration
@@ -51,8 +52,10 @@ from ember.api.data import (
     list_available_datasets,  # List available datasets
     register,  # Dataset registration decorator
 )
-
-# Import model API components
+from ember.api.eval import (
+    EvaluationPipeline,  # Pipeline for batch evaluation
+    Evaluator,  # Evaluator for model outputs
+)
 from ember.api.models import (
     ModelAPI,  # High-level model API
     ModelBuilder,  # Builder pattern for model configuration
@@ -65,6 +68,7 @@ __all__ = [
     "models",  # Model access (models.openai.gpt4o, etc.)
     "datasets",  # Dataset access (datasets("mmlu"), etc.)
     # Module namespaces
+    "eval",  # Evaluation module
     "non",  # Network of Networks patterns
     # "xcs",  # Execution optimization
     "operators",  # Operator system (plural)
@@ -84,4 +88,7 @@ __all__ = [
     "register",  # Dataset registration decorator
     "list_available_datasets",  # List available datasets
     "get_dataset_info",  # Get dataset metadata
+    # Evaluation API components
+    "Evaluator",  # Evaluator for model outputs
+    "EvaluationPipeline",  # Pipeline for batch evaluation
 ]

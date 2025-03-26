@@ -209,3 +209,17 @@ class EmberConfig(BaseModel):
             if provider:
                 return provider.get_model_config(model_name)
         return None
+
+
+class EmberSettings(EmberConfig):
+    """Configuration settings for Ember.
+
+    This class extends EmberConfig to provide a more user-friendly API for configuration.
+    It resolves circular import issues with model configuration.
+
+    Usage:
+        settings = EmberSettings()
+        settings.registry.auto_discover = True
+    """
+
+    pass

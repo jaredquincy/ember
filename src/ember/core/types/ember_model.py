@@ -17,7 +17,7 @@ from typing import (
     get_type_hints,
 )
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 # Import locally to avoid circular imports
 from .protocols import TypeInfo

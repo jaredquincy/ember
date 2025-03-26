@@ -166,7 +166,7 @@ print(f"Confidence: {result.confidence:.2f}")
    type-safe, reusable components with validated inputs and outputs
 2. **Automatic Parallelization**: Independent operations are automatically executed concurrently 
    across a full computational graph
-3. **XCS Optimization Framework**: Just-in-time tracing and execution optimization inspired by JAX/XLA 
+3. **XCS Optimization Framework**: "Accelerated Compound Systems" Just-in-time tracing and execution optimization. XCS is inspired by XLA, but intended more for accelerating compound systems vs. linear algebra operations, tuned for models and dicts, vs for vectors and numerical computation. 
 4. **Multi-Provider Support**: Unified API across OpenAI, Anthropic, Claude, Gemini, and more 
    with standardized usage tracking
 
@@ -300,7 +300,8 @@ def process_batch(inputs, model):
 Ember provides a comprehensive data processing and evaluation framework with pre-built datasets and metrics:
 
 ```python
-from ember.api.data import DatasetBuilder, EvaluationPipeline, Evaluator
+from ember.api.data import DatasetBuilder
+from ember.api.eval import EvaluationPipeline, Evaluator
 
 # Load a dataset with the builder pattern
 dataset = (DatasetBuilder()
