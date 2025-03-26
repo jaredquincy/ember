@@ -273,7 +273,12 @@ class TopologicalSchedulerWithParallelDispatch(TopologicalScheduler):
                         # Collect inputs from predecessors
                         # Check if input is a dictionary or other type
                         try:
-                            inputs = global_input.copy()
+                            # Handle both Pydantic models and regular dictionaries
+                            if hasattr(global_input, "model_copy"):
+                                inputs = global_input.model_copy()
+                            else:
+                                inputs = global_input.copy()
+                                
                             for pred_id in task.inputs:
                                 if pred_id in results:
                                     if hasattr(inputs, "update") and callable(

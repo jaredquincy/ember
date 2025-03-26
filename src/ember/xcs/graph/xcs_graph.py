@@ -154,7 +154,7 @@ class XCSGraph:
 
         # Verify complete ordering (no cycles)
         if len(sorted_nodes) != len(self.nodes):
-            raise ValueError("Graph contains cycles and cannot be sorted")
+            raise ValueError("Graph contains a cycle")
 
         return sorted_nodes
 
