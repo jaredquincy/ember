@@ -577,13 +577,23 @@ def test_state_preservation_across_calls() -> None:
 
     # Verify state is preserved and incremental
     assert result1["count"] > 0, "First call should have a positive count"
-    assert result2["count"] > result1["count"], "Second call should have a higher count than first"
-    assert result3["count"] > result2["count"], "Third call should have a higher count than second"
+    assert (
+        result2["count"] > result1["count"]
+    ), "Second call should have a higher count than first"
+    assert (
+        result3["count"] > result2["count"]
+    ), "Third call should have a higher count than second"
 
     # Verify sub-operator calls contain their respective count
-    assert f"count_{result1['count']}" in result1["result"], "First result should contain its count"
-    assert f"count_{result2['count']}" in result2["result"], "Second result should contain its count"
-    assert f"count_{result3['count']}" in result3["result"], "Third result should contain its count"
+    assert (
+        f"count_{result1['count']}" in result1["result"]
+    ), "First result should contain its count"
+    assert (
+        f"count_{result2['count']}" in result2["result"]
+    ), "Second result should contain its count"
+    assert (
+        f"count_{result3['count']}" in result3["result"]
+    ), "Third result should contain its count"
 
 
 # -----------------------------------------------------------------------------
@@ -602,6 +612,7 @@ def test_error_propagation() -> None:
 
     # Verify error is raised and message is preserved
     from ember.core.exceptions import OperatorExecutionError
+
     with pytest.raises(OperatorExecutionError) as exc_info:
         _ = op(inputs={"query": "test"})
 
@@ -626,11 +637,14 @@ def test_conditional_error_handling() -> None:
     # Second call should fail with the appropriate error
     # Operator errors should propagate through the JIT
     from ember.core.exceptions import OperatorExecutionError
+
     with pytest.raises(OperatorExecutionError) as exc_info:
         _ = op(inputs={"query": "test", "error": True})
 
     # Check that the error message contains our expected string
-    assert "Conditional error triggered" in str(exc_info.value), "Error message should be preserved"
+    assert "Conditional error triggered" in str(
+        exc_info.value
+    ), "Error message should be preserved"
 
 
 def test_error_in_nested_operator() -> None:
@@ -660,6 +674,7 @@ def test_error_in_nested_operator() -> None:
 
     # Verify error is propagated
     from ember.core.exceptions import OperatorExecutionError
+
     with pytest.raises(OperatorExecutionError) as exc_info:
         _ = op(inputs={"query": "test"})
 
@@ -725,7 +740,9 @@ def test_custom_execution_strategy() -> None:
     _ = op(inputs={"query": "test"})
 
     # Verify operation was successful
-    assert op._jit_config.strategy == "sequential", "Strategy should be set to sequential"
+    assert (
+        op._jit_config.strategy == "sequential"
+    ), "Strategy should be set to sequential"
 
 
 # -----------------------------------------------------------------------------
@@ -782,12 +799,12 @@ def test_disable_structural_jit_context_manager() -> None:
     # and we've already fixed the JIT tracing in other tests,
     # let's skip the detailed context manager testing and just
     # verify the operator's continuity of state
-    
+
     # Execute directly
     result2 = op(inputs={"query": "test2"})
     # Execute again
     result3 = op(inputs={"query": "test3"})
-    
+
     # Verify state is sequential regardless of JIT being enabled or not
     # This is a simplified check that verifies state is kept correctly
     assert result3["count"] > result2["count"], "Count should increase sequentially"
@@ -832,7 +849,7 @@ def test_very_deep_nesting() -> None:
         specification: ClassVar[Specification] = Specification()
         name: str
         leaf: LeafOperator
-        next: Optional['DeepOperator'] = None
+        next: Optional["DeepOperator"] = None
 
         def __init__(self, *, depth: int = 1) -> None:
             self.name = f"depth_{depth}"
@@ -879,7 +896,7 @@ def test_cyclic_reference() -> None:
     class CyclicOperator(Operator[Dict[str, Any], Dict[str, Any]]):
         specification: ClassVar[Specification] = Specification()
         leaf: LeafOperator
-        cycle: 'CyclicOperator'
+        cycle: "CyclicOperator"
 
         def __init__(self) -> None:
             self.leaf = LeafOperator(name="cyclic")
@@ -919,7 +936,7 @@ def test_dynamic_operator_creation() -> None:
     def create_operator(name: str) -> Operator:
         class DynamicOperator(Operator[Dict[str, Any], Dict[str, Any]]):
             specification: ClassVar[Specification] = Specification()
-            
+
             def forward(self, *, inputs: Dict[str, Any]) -> Dict[str, Any]:
                 return {"result": f"dynamic_{name}_{inputs.get('query', 'default')}"}
 

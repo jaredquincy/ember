@@ -43,11 +43,11 @@ from ember.core.exceptions import InvalidArgumentError
 @dataclasses.dataclass
 class ExecutionOptions:
     """Configuration parameters for XCS graph execution.
-    
+
     Controls scheduling strategy, parallelism, memory optimization,
     and execution monitoring for computational graphs. These options
     affect runtime behavior without changing graph structure.
-    
+
     Attributes:
         use_parallel: Controls parallel execution of compatible operations
         max_workers: Thread pool size limit for parallel execution
@@ -78,7 +78,7 @@ def set_execution_options(**kwargs: Any) -> None:
     Modifies global execution settings that apply to all subsequent
     graph executions across the application unless overridden by
     a local execution_options context.
-    
+
     Args:
         **kwargs: Configuration parameters to update.
                  Must match ExecutionOptions attributes.
@@ -108,7 +108,7 @@ def get_execution_options() -> ExecutionOptions:
 
     Returns a deep copy of the current global execution settings,
     preventing unintended modification of the global state.
-    
+
     Returns:
         Copy of current execution configuration
     """

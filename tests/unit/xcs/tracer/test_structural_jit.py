@@ -397,17 +397,17 @@ class TestStructuralJITExecution:
         # All strategies should produce the same result
         assert seq_result.result == par_result.result
         assert par_result.result == auto_result.result
-        
+
         # Test scheduler selection directly
         from ember.xcs.engine.xcs_noop_scheduler import XCSNoOpScheduler
         from ember.xcs.engine.xcs_engine import TopologicalSchedulerWithParallelDispatch
-        
+
         test_graph = seq_op._jit_xcs_graph
-        
+
         seq_config = ExecutionConfig(strategy="sequential")
         seq_scheduler = get_scheduler(test_graph, seq_config)
         assert isinstance(seq_scheduler, XCSNoOpScheduler)
-        
+
         par_config = ExecutionConfig(strategy="parallel")
         par_scheduler = get_scheduler(test_graph, par_config)
         assert isinstance(par_scheduler, TopologicalSchedulerWithParallelDispatch)
@@ -496,6 +496,6 @@ class TestStructuralJITErrors:
         # Second call should raise a ValueError due to invalid strategy
         with pytest.raises(ValueError) as exc_info:
             _ = op(inputs=TestInput(value="second"))
-        
+
         # The error message should indicate the invalid strategy
         assert "invalid_strategy" in str(exc_info.value)

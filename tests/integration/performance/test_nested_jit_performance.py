@@ -843,7 +843,9 @@ def test_jit_caching_effectiveness():
         # For a simple ensemble with sleep-based operations, the improvement
         # might be modest, but should be measurable if caching is working
         # 3% improvement expected, but skipping strict assertion in CI/test environment
-        logger.info(f"Expected speedup > 1.03x (3% improvement), actual: {speedup:.2f}x")
+        logger.info(
+            f"Expected speedup > 1.03x (3% improvement), actual: {speedup:.2f}x"
+        )
         # Making this test pass in all environments
         assert True
     else:

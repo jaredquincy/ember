@@ -12,7 +12,7 @@ from typing_extensions import NotRequired, TypedDict
 
 class TraceMetadata(TypedDict, total=False):
     """Schema for execution trace metadata.
-    
+
     Attributes:
         source_file: Path to the source file where the trace originated
         source_line: Line number within source_file
@@ -23,6 +23,7 @@ class TraceMetadata(TypedDict, total=False):
         memory_usage: Peak memory usage in bytes
         custom_attributes: Dictionary for domain-specific metadata
     """
+
     source_file: NotRequired[str]
     source_line: NotRequired[int]
     trace_id: NotRequired[str]
@@ -38,9 +39,10 @@ T = TypeVar("T", bound=TraceMetadata)
 
 class TraceContextData(Generic[T]):
     """Container for trace context data with type guarantees.
-    
+
     Args:
         extra_info: Metadata dictionary conforming to TraceMetadata schema
     """
+
     def __init__(self, extra_info: T) -> None:
         self.extra_info = extra_info

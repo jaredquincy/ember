@@ -32,11 +32,11 @@ from typing import Any, Callable, Dict, List, Optional, Set, Tuple, TypeVar, Uni
 @dataclasses.dataclass
 class XCSNode:
     """Single computation node in an execution graph.
-    
+
     Represents one operation in a computational flow with its connections
     to other nodes. Each node contains an executable operator and maintains
     its position in the graph through edge lists.
-    
+
     Attributes:
         operator: Callable function or operator executing this node's computation
         node_id: Unique identifier for addressing this node in the graph
@@ -45,6 +45,7 @@ class XCSNode:
         name: Human-readable label for debugging and visualization
         metadata: Additional node properties (e.g., cost estimates, device placement)
     """
+
     operator: Callable[..., Dict[str, Any]]
     node_id: str
     inbound_edges: List[str] = dataclasses.field(default_factory=list)
@@ -59,7 +60,7 @@ XCSGraphNode = XCSNode
 
 class XCSGraph:
     """Directed graph for computational workflows.
-    
+
     Provides a structure for defining complex computational flows as directed
     graphs. Supports operations needed for graph analysis, transformation, and
     execution by the XCS execution engine.
@@ -78,16 +79,16 @@ class XCSGraph:
         metadata: Optional[Dict[str, Any]] = None,
     ) -> str:
         """Adds a computation node to the graph.
-        
+
         Args:
             operator: Function or operator to execute at this node
             node_id: Unique identifier (auto-generated if None)
             name: Human-readable label for the node
             metadata: Additional properties for analysis and optimization
-        
+
         Returns:
             Generated or provided node ID
-            
+
         Raises:
             ValueError: If node_id already exists in the graph
         """
@@ -104,14 +105,14 @@ class XCSGraph:
 
     def add_edge(self, from_id: str, to_id: str) -> None:
         """Creates a directed data dependency between nodes.
-        
+
         Establishes that the output of one node flows into another,
         forming a directed edge in the computation graph.
-        
+
         Args:
             from_id: Source node producing output data
             to_id: Destination node consuming the data
-            
+
         Raises:
             ValueError: If either node doesn't exist in the graph
         """
@@ -125,13 +126,13 @@ class XCSGraph:
 
     def topological_sort(self) -> List[str]:
         """Orders nodes so dependencies come before dependents.
-        
+
         Produces an execution ordering where each node appears after
         all nodes it depends on, ensuring valid sequential execution.
-        
+
         Returns:
             List of node IDs in dependency-respecting order
-            
+
         Raises:
             ValueError: If graph contains cycles (not a DAG)
         """
@@ -160,10 +161,10 @@ class XCSGraph:
 
     def __str__(self) -> str:
         """Creates a human-readable graph representation.
-        
+
         Generates a structured text description showing nodes and
         their connections, useful for debugging and visualization.
-        
+
         Returns:
             Multi-line string describing the graph structure
         """
@@ -186,25 +187,25 @@ class XCSGraph:
 
 def merge_xcs_graphs(base: XCSGraph, additional: XCSGraph, namespace: str) -> XCSGraph:
     """Combines two computation graphs with namespace isolation.
-    
-    Creates a new graph containing all nodes from both input graphs, 
-    with nodes from the additional graph prefixed to avoid collisions. 
+
+    Creates a new graph containing all nodes from both input graphs,
+    with nodes from the additional graph prefixed to avoid collisions.
     Preserves all edge connections, adjusting IDs as needed.
-    
+
     Args:
         base: Primary graph to merge into
         additional: Secondary graph to incorporate with namespace prefixing
         namespace: Prefix for additional graph's node IDs for isolation
-        
+
     Returns:
         New graph containing nodes and edges from both inputs
-        
+
     Example:
         ```python
         # Merge specialized processing graph into main workflow
         main_graph = XCSGraph()  # Main computation pipeline
         process_graph = XCSGraph()  # Specialized processing subgraph
-        
+
         # Combine while isolating process_graph nodes
         merged = merge_xcs_graphs(main_graph, process_graph, "process")
         ```

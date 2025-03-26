@@ -55,41 +55,42 @@ T = TypeVar("T")
 
 
 @overload
-def jit(func: Type[T]) -> Type[T]: ...
+def jit(func: Type[T]) -> Type[T]:
+    ...
 
 
 @overload
-def jit(*, mode: str = "trace") -> Callable[[Type[T]], Type[T]]: ...
+def jit(*, mode: str = "trace") -> Callable[[Type[T]], Type[T]]:
+    ...
 
 
 def jit(func=None, *, mode: str = "trace"):
     """Just-in-time compiler for operator optimization.
-    
-    Transforms operator classes for automatic graph-based execution. 
+
+    Transforms operator classes for automatic graph-based execution.
     Selects between tracing and structural analysis strategies.
-    
+
     Args:
         func: Operator class to decorate
         mode: JIT strategy:
             - "trace": Records and optimizes execution paths
             - "structural": Analyzes composition structure for parallelism
-    
+
     Returns:
         Decorated operator class
-        
+
     Raises:
         ValueError: If unknown mode specified
     """
-    MODES = {
-        "trace": trace_jit,
-        "structural": structural_jit
-    }
-    
+    MODES = {"trace": trace_jit, "structural": structural_jit}
+
     def decorator(cls: Type[T]) -> Type[T]:
         if mode not in MODES:
-            raise ValueError(f"Unknown JIT mode: {mode}. Valid options: {', '.join(MODES.keys())}")
+            raise ValueError(
+                f"Unknown JIT mode: {mode}. Valid options: {', '.join(MODES.keys())}"
+            )
         return MODES[mode](cls)
-    
+
     # Handle both @jit and @jit(...) syntax
     return decorator(func) if func is not None else decorator
 

@@ -66,15 +66,16 @@ logger = logging.getLogger(__name__)
 @dataclass
 class XCSTask:
     """Executable task within a computation plan.
-    
+
     Represents a single operation to be executed as part of a larger
     computational graph, along with its input and output relationships.
-    
+
     Attributes:
         operator: Function or operator that performs the computation
         inputs: Node IDs that provide inputs to this task
         outputs: Node IDs that consume output from this task
     """
+
     operator: Callable[..., Dict[str, Any]]
     inputs: List[str] = field(default_factory=list)
     outputs: List[str] = field(default_factory=list)
@@ -83,21 +84,22 @@ class XCSTask:
 @dataclass
 class XCSPlan:
     """Compiled execution plan for a computation graph.
-    
-    Transforms a graph description into a concrete execution plan with 
+
+    Transforms a graph description into a concrete execution plan with
     tasks that can be dispatched by a scheduler. Acts as an intermediate
     representation between graph definition and execution.
-    
+
     Attributes:
         tasks: Mapping from node IDs to executable task objects
         graph_id: Unique identifier for tracking plan instances
     """
+
     tasks: Dict[str, XCSTask] = field(default_factory=dict)
     graph_id: str = field(default_factory=lambda: str(uuid.uuid4()))
 
     def add_task(self, node_id: str, task: XCSTask) -> None:
         """Registers a task in the execution plan.
-        
+
         Args:
             node_id: Unique identifier for the task
             task: The executable task to register
@@ -107,17 +109,18 @@ class XCSPlan:
 
 class IScheduler(Protocol):
     """Interface for graph execution schedulers.
-    
-    Defines the contract for schedulers that organize graph nodes into 
+
+    Defines the contract for schedulers that organize graph nodes into
     execution waves based on their dependencies. Different implementations
     can prioritize different execution strategies (sequential, parallel, etc).
     """
+
     def schedule(self, graph: XCSGraph) -> List[List[str]]:
         """Creates an execution plan from a computation graph.
-        
+
         Args:
             graph: Computation graph to be scheduled
-        
+
         Returns:
             List of execution waves, where each wave contains node IDs
             that can be executed concurrently
@@ -127,25 +130,26 @@ class IScheduler(Protocol):
 
 class TopologicalScheduler:
     """Sequential scheduler based on dependency ordering.
-    
+
     Organizes nodes into execution waves where each wave contains nodes
     whose dependencies have been satisfied by previous waves. Creates
     a valid execution order that respects data dependencies.
     """
+
     def schedule(self, graph: XCSGraph) -> List[List[str]]:
         """Groups nodes into dependency-respecting execution waves.
-        
+
         Analyzes the graph structure to determine which nodes can be
         executed concurrently without violating data dependencies,
         organizing them into sequential waves.
-        
+
         Args:
             graph: Computation graph to be scheduled
-        
+
         Returns:
             List of waves where each wave contains nodes that can be
             executed in parallel after all previous waves complete
-            
+
         Raises:
             ValueError: If graph contains cycles
         """
@@ -178,7 +182,7 @@ class TopologicalScheduler:
 
 class TopologicalSchedulerWithParallelDispatch(TopologicalScheduler):
     """Parallel execution scheduler using multi-threading.
-    
+
     Extends the topological scheduler with parallel dispatch capabilities,
     executing each wave of nodes concurrently using a thread pool. Automatically
     adapts execution based on identified parallelization patterns in the graph.
@@ -202,7 +206,7 @@ class TopologicalSchedulerWithParallelDispatch(TopologicalScheduler):
         Executes a compiled plan with optimized parallelism strategies,
         automatically detecting parallelizable patterns in the graph metadata
         and adjusting thread allocation accordingly.
-        
+
         Args:
             plan: The XCSPlan to execute
             global_input: Input data for the graph
@@ -210,7 +214,7 @@ class TopologicalSchedulerWithParallelDispatch(TopologicalScheduler):
 
         Returns:
             A dictionary mapping node IDs to their execution results
-            
+
         Raises:
             Exception: Propagates exceptions from individual node executions
                       after logging them
@@ -278,7 +282,7 @@ class TopologicalSchedulerWithParallelDispatch(TopologicalScheduler):
                                 inputs = global_input.model_copy()
                             else:
                                 inputs = global_input.copy()
-                                
+
                             for pred_id in task.inputs:
                                 if pred_id in results:
                                     if hasattr(inputs, "update") and callable(
@@ -361,7 +365,7 @@ def execute_graph(
     Primary entry point for graph execution in XCS. Processes the graph by
     automatically detecting execution patterns, scheduling nodes into waves
     based on dependencies, and dispatching the computation across those waves.
-    
+
     Args:
         graph: The computational graph to execute
         global_input: Input data for the graph's source nodes
@@ -370,7 +374,7 @@ def execute_graph(
 
     Returns:
         A dictionary mapping node IDs to their execution results
-        
+
     Raises:
         ValueError: If the graph contains cycles or other invalid structures
     """
@@ -496,13 +500,13 @@ def compile_graph(graph: XCSGraph) -> XCSPlan:
     dependencies and creating executable tasks. This intermediate representation
     separates graph definition from execution concerns, enabling optimization
     and specialization for different runtime environments.
-    
+
     Args:
         graph: The XCS graph to compile
 
     Returns:
         An XCSPlan ready for execution by a scheduler
-        
+
     Raises:
         ValueError: If the graph contains cycles or invalid nodes that would
                    prevent proper execution

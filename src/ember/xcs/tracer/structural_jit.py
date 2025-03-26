@@ -118,17 +118,19 @@ class PytreeCompatible(Protocol):
 # Execution Strategy Definition
 # -----------------------------------------------------------------------------
 
+
 @dataclass
 class ExecutionConfig:
     """Configuration for graph execution.
-    
+
     Defines parameters for scheduler selection and execution behavior.
-    
+
     Attributes:
         strategy: Execution approach to use
         parallel_threshold: Minimum nodes to trigger parallelism in auto mode
         max_workers: Maximum concurrent worker threads for parallel execution
     """
+
     strategy: str = "auto"
     parallel_threshold: int = 5
     max_workers: Optional[int] = None
@@ -136,37 +138,40 @@ class ExecutionConfig:
 
 def get_scheduler(graph: XCSGraph, config: ExecutionConfig) -> IScheduler:
     """Create the appropriate scheduler based on strategy and graph.
-    
+
     Analyzes graph characteristics and config settings to select
     the optimal scheduler implementation.
-    
+
     Args:
         graph: Graph to be executed
         config: Execution configuration parameters
-        
+
     Returns:
         Scheduler instance optimized for the graph
-        
+
     Raises:
         ValueError: If strategy is invalid
     """
     # Handle pre-defined strategies first
     if config.strategy == "sequential":
         return XCSNoOpScheduler()
-        
+
     if config.strategy == "parallel":
         return TopologicalSchedulerWithParallelDispatch(max_workers=config.max_workers)
-    
+
     if config.strategy == "auto":
         # Auto mode - analyze graph for parallelization potential
         if len(graph.nodes) < config.parallel_threshold:
             return XCSNoOpScheduler()
-            
+
         # Count potentially parallelizable nodes
         parallel_nodes = _count_parallelizable_nodes(graph)
-        return (TopologicalSchedulerWithParallelDispatch(max_workers=config.max_workers) 
-                if parallel_nodes >= 2 else XCSNoOpScheduler())
-    
+        return (
+            TopologicalSchedulerWithParallelDispatch(max_workers=config.max_workers)
+            if parallel_nodes >= 2
+            else XCSNoOpScheduler()
+        )
+
     # Invalid strategy
     raise ValueError(
         f"Unknown execution strategy: {config.strategy}. "
@@ -176,12 +181,12 @@ def get_scheduler(graph: XCSGraph, config: ExecutionConfig) -> IScheduler:
 
 def _count_parallelizable_nodes(graph: XCSGraph) -> int:
     """Count nodes that could execute in parallel.
-    
+
     Analyzes graph structure to identify potential parallelism.
-    
+
     Args:
         graph: Graph to analyze
-        
+
     Returns:
         Estimated count of parallelizable nodes
     """
@@ -239,66 +244,63 @@ class OperatorStructureGraph:
 
 def _analyze_operator_structure(operator: Operator) -> OperatorStructureGraph:
     """Analyze operator composition structure.
-    
+
     Identifies nested operators with their parent-child relationships.
-    
+
     Args:
         operator: Root operator
-        
+
     Returns:
         Operator structure graph
     """
     graph = OperatorStructureGraph()
     visited = set()
-    
+
     def visit(obj: Any, path: str, parent_id: Optional[str] = None) -> Optional[str]:
         """Recursively process object and its attributes.
-        
+
         Args:
             obj: Current object
             path: Attribute path from root
             parent_id: Parent node ID
-            
+
         Returns:
             Node ID if operator was added
         """
         # Skip primitives and None
         if obj is None or isinstance(obj, (str, int, float, bool, bytes)):
             return None
-            
+
         # Skip cycles
         obj_id = id(obj)
         if obj_id in visited:
             return None
-            
+
         # Mark as visited to prevent cycles
         visited.add(obj_id)
-        
+
         # Add node if it's an operator
         node_id = None
         if isinstance(obj, Operator):
             node_id = f"node_{obj_id}"
             graph.nodes[node_id] = OperatorStructureNode(
-                operator=obj,
-                node_id=node_id,
-                attribute_path=path,
-                parent_id=parent_id
+                operator=obj, node_id=node_id, attribute_path=path, parent_id=parent_id
             )
-            
+
             # First node becomes root
             if graph.root_id is None:
                 graph.root_id = node_id
-        
+
         # Process attributes regardless of whether it's an operator
         # This is critical for nested operators!
         if hasattr(obj, "__dict__"):
             for attr_name, value in _get_attributes(obj):
                 if attr_name.startswith("_"):
                     continue
-                    
+
                 attr_path = f"{path}.{attr_name}"
                 visit(value, attr_path, node_id or parent_id)
-        
+
         # Process collections
         if isinstance(obj, dict):
             for key, value in obj.items():
@@ -306,9 +308,9 @@ def _analyze_operator_structure(operator: Operator) -> OperatorStructureGraph:
         elif isinstance(obj, (list, tuple)):
             for i, value in enumerate(obj):
                 visit(value, f"{path}[{i}]", node_id or parent_id)
-        
+
         return node_id
-    
+
     # Start traversal from root
     visit(operator, "root")
     return graph
@@ -316,18 +318,18 @@ def _analyze_operator_structure(operator: Operator) -> OperatorStructureGraph:
 
 def _get_attributes(obj: Any) -> List[Tuple[str, Any]]:
     """Get accessible attributes of an object.
-    
+
     Extracts attributes that could potentially contain operators.
-    
+
     Args:
         obj: Object to examine
-        
+
     Returns:
         List of (name, value) tuples
     """
     # Start with instance variables
     attributes = list(getattr(obj, "__dict__", {}).items())
-    
+
     # Add class variables for class objects
     if inspect.isclass(obj):
         for name in dir(obj):
@@ -338,7 +340,7 @@ def _get_attributes(obj: Any) -> List[Tuple[str, Any]]:
                         attributes.append((name, value))
                 except Exception:
                     pass
-    
+
     return attributes
 
 
@@ -353,36 +355,35 @@ def _build_xcs_graph_from_structure(
     sample_input: Optional[Dict[str, Any]] = None,
 ) -> XCSGraph:
     """Build execution graph from operator structure.
-    
+
     Creates a graph with nodes and edges based on the analyzed
     operator composition structure.
-    
+
     Args:
         operator: Root operator
         structure: Analyzed structure graph
         sample_input: Optional input for data flow analysis
-        
+
     Returns:
         Executable XCS graph
     """
     graph = XCSGraph()
-    
+
     # Add all operators as nodes
     for node_id, node in structure.nodes.items():
         graph.add_node(operator=node.operator, node_id=node_id)
-    
+
     # Connect parent-child relationships
     for node_id, node in structure.nodes.items():
         if node.parent_id:
             graph.add_edge(from_id=node.parent_id, to_id=node_id)
-    
+
     return graph
 
 
 # -----------------------------------------------------------------------------
 # Execution & Caching
 # -----------------------------------------------------------------------------
-
 
 
 def _execute_with_engine(
@@ -402,16 +403,18 @@ def _execute_with_engine(
 
     Returns:
         Execution results
-        
+
     Raises:
         OperatorExecutionError: For errors in operator implementation
         Exception: For errors in graph execution machinery
     """
     logger = logging.getLogger("ember.xcs.tracer.structural_jit")
-    
+
     # Get appropriate scheduler based on strategy and graph
     scheduler = get_scheduler(graph, config)
-    logger.debug(f"Executing graph with {len(graph.nodes)} nodes using {scheduler.__class__.__name__}")
+    logger.debug(
+        f"Executing graph with {len(graph.nodes)} nodes using {scheduler.__class__.__name__}"
+    )
 
     try:
         # Compile and execute graph
@@ -421,18 +424,18 @@ def _execute_with_engine(
             global_input=inputs,
             graph=graph,
         )
-        
+
         # Find appropriate output from results
         return _extract_result(graph, results, logger)
-        
+
     except Exception as e:
         # Handle execution errors
         from ember.core.exceptions import OperatorExecutionError
-        
+
         # Propagate operator errors without recovery attempts
         if isinstance(e, (OperatorExecutionError, ValueError, TypeError, RuntimeError)):
             raise
-            
+
         # For machinery errors, try to recover with cached result if available
         if hasattr(graph, "original_result") and graph.original_result is not None:
             logger.debug(f"Recovering from JIT error: {str(e)}")
@@ -442,16 +445,18 @@ def _execute_with_engine(
         raise
 
 
-def _extract_result(graph: XCSGraph, results: Dict[str, Any], logger: logging.Logger) -> Dict[str, Any]:
+def _extract_result(
+    graph: XCSGraph, results: Dict[str, Any], logger: logging.Logger
+) -> Dict[str, Any]:
     """Extract the appropriate result from graph execution output.
-    
+
     Uses a series of heuristics to identify the intended output node.
-    
+
     Args:
         graph: The executed graph
         results: Execution results for all nodes
         logger: Logger for debug messages
-        
+
     Returns:
         The extracted result
     """
@@ -460,31 +465,32 @@ def _extract_result(graph: XCSGraph, results: Dict[str, Any], logger: logging.Lo
         node_id = next(iter(graph.nodes.keys()))
         if node_id in results:
             return results[node_id]
-            
+
     # Strategy 2: Single leaf node
-    leaf_nodes = [node_id for node_id, node in graph.nodes.items() 
-                 if not node.outbound_edges]
+    leaf_nodes = [
+        node_id for node_id, node in graph.nodes.items() if not node.outbound_edges
+    ]
     if len(leaf_nodes) == 1 and leaf_nodes[0] in results:
         return results[leaf_nodes[0]]
-        
+
     # Strategy 3: Original operator node
     if "original_operator" in results:
         return results["original_operator"]
-        
+
     # Strategy 4: Output node from metadata
     if "output_node" in graph.metadata and graph.metadata["output_node"] in results:
         return results[graph.metadata["output_node"]]
-        
+
     # Strategy 5: Identical leaf node results
     if len(leaf_nodes) > 1:
         leaf_results = [results.get(node) for node in leaf_nodes if node in results]
         if leaf_results and all(r == leaf_results[0] for r in leaf_results):
             return leaf_results[0]
-            
+
     # Strategy 6: Cached original result
     if hasattr(graph, "original_result") and graph.original_result is not None:
         return graph.original_result
-    
+
     # Strategy 7: Return all results
     logger.debug("Could not determine specific output node")
     return results
@@ -520,7 +526,7 @@ def structural_jit(
 
     Returns:
         Decorated operator class with optimized execution
-        
+
     Example:
         ```python
         @structural_jit
@@ -534,19 +540,18 @@ def structural_jit(
                 return self.op2(inputs=intermediate)
         ```
     """
+
     def decorator(cls: Type[OperatorType]) -> Type[OperatorType]:
         """Inner decorator applied to operator class."""
         # Verify interface compatibility
         if not hasattr(cls, "__call__") or not callable(getattr(cls, "__call__")):
-            raise TypeError(
-                "@structural_jit requires a class with __call__ method"
-            )
+            raise TypeError("@structural_jit requires a class with __call__ method")
 
         # Create execution config once
         execution_config = ExecutionConfig(
             strategy=execution_strategy,
             parallel_threshold=parallel_threshold,
-            max_workers=max_workers
+            max_workers=max_workers,
         )
 
         # Save original methods
@@ -563,13 +568,15 @@ def structural_jit(
             self._jit_enabled = True
             self._jit_config = execution_config
             self._jit_cache_graph = cache_graph
-            
+
             # Analyze structure during initialization
             self._jit_structure_graph = _analyze_operator_structure(self)
             self._jit_xcs_graph = None
 
         @functools.wraps(original_call)
-        def call_wrapper(self: OperatorType, *, inputs: Dict[str, Any]) -> Dict[str, Any]:
+        def call_wrapper(
+            self: OperatorType, *, inputs: Dict[str, Any]
+        ) -> Dict[str, Any]:
             """Wrapped execution with graph-based optimization."""
             # Handle disabled JIT
             if getattr(self, "_jit_enabled", True) is False:
@@ -588,7 +595,7 @@ def structural_jit(
                     return _execute_with_engine(
                         graph=self._jit_xcs_graph,
                         inputs=inputs,
-                        config=self._jit_config
+                        config=self._jit_config,
                     )
 
                 # First call - build the graph
@@ -600,23 +607,21 @@ def structural_jit(
                     self._jit_xcs_graph = _build_xcs_graph_from_structure(
                         operator=self,
                         structure=self._jit_structure_graph,
-                        sample_input=inputs
+                        sample_input=inputs,
                     )
-                    
+
                     # Save original result and add original operator node
                     self._jit_xcs_graph.original_result = original_result
                     self._jit_xcs_graph.add_node(
                         operator=original_call.__get__(self),
-                        node_id="original_operator"
+                        node_id="original_operator",
                     )
 
                     return original_result
 
                 # Execute with engine
                 return _execute_with_engine(
-                    graph=self._jit_xcs_graph,
-                    inputs=inputs,
-                    config=self._jit_config
+                    graph=self._jit_xcs_graph, inputs=inputs, config=self._jit_config
                 )
             finally:
                 self._jit_in_execution = False
@@ -627,7 +632,7 @@ def structural_jit(
 
         # Add control utilities
         cls.disable_jit = lambda self: setattr(self, "_jit_enabled", False)
-        cls.enable_jit = lambda self: setattr(self, "_jit_enabled", True) 
+        cls.enable_jit = lambda self: setattr(self, "_jit_enabled", True)
         cls.clear_graph_cache = lambda self: setattr(self, "_jit_xcs_graph", None)
 
         return cls

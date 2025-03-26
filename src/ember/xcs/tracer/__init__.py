@@ -27,7 +27,7 @@ def autograph(*args, **kwargs):
         pass
 
 
-# Expose individual JIT implementations for backwards compatibility  
+# Expose individual JIT implementations for backwards compatibility
 from .tracer_decorator import jit as trace_jit
 from .structural_jit import structural_jit, disable_structural_jit
 

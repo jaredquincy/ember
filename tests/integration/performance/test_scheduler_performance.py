@@ -98,7 +98,7 @@ def test_sequential_vs_parallel_scheduler():
     assert (
         speedup >= min_expected_speedup
     ), f"Expected parallel scheduler to be at least {min_expected_speedup}x faster, got {speedup:.2f}x"
-    
+
     # Log a warning if the speedup is suboptimal
     if speedup < 5.0:
         logger.warning(
@@ -182,7 +182,7 @@ def test_sequential_with_dependencies():
     assert (
         ratio >= 0.7
     ), f"Expected parallel scheduler to not be significantly slower, got {ratio:.2f}x"
-    
+
     # Log a warning if the ratio is suboptimal but still passes
     if ratio < 0.9:
         logger.warning(
@@ -266,7 +266,7 @@ def test_diamond_pattern():
     assert (
         speedup >= min_expected_speedup
     ), f"Expected diamond pattern to show at least {min_expected_speedup}x speedup, got {speedup:.2f}x"
-    
+
     # Log a warning if the speedup is suboptimal
     if speedup < 1.2:
         logger.warning(
