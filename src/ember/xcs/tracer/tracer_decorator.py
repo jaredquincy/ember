@@ -211,77 +211,98 @@ def jit(
             """
             # Setup logging
             logger = logging.getLogger("ember.xcs.tracer.jit")
-            
+
             # Get current tracer context
             tracer: Optional[TracerContext] = TracerContext.get_current()
-            
+
             # For debugging and test purposes
             force_trace_local = getattr(self, "_force_trace", force_trace)
-            
+
             # Check if we have a cached compiled graph and should use it
             op_id = id(self)
-            
+
             # Phase 1: Try optimized execution with cached graph
             # -------------------------------------------------
             if not force_trace_local and op_id in _COMPILED_GRAPHS:
                 try:
                     # Import execution components
                     from ember.xcs.engine.xcs_engine import execute_graph
-                    from ember.xcs.engine.xcs_engine import TopologicalSchedulerWithParallelDispatch
-                    
+                    from ember.xcs.engine.xcs_engine import (
+                        TopologicalSchedulerWithParallelDispatch,
+                    )
+
                     # Get cached graph
                     graph = _COMPILED_GRAPHS[op_id]
-                    logger.debug(f"Using optimized graph for {self.__class__.__name__} (nodes: {len(graph.nodes)})")
-                    
+                    logger.debug(
+                        f"Using optimized graph for {self.__class__.__name__} (nodes: {len(graph.nodes)})"
+                    )
+
                     # Execute the graph with the parallel scheduler
                     # The scheduler will automatically determine optimal execution strategy
                     results = execute_graph(
                         graph=graph,
                         global_input=inputs,
-                        scheduler=TopologicalSchedulerWithParallelDispatch()
+                        scheduler=TopologicalSchedulerWithParallelDispatch(),
                     )
-                    
+
                     # Find the appropriate result to return
                     # Try different strategies to determine which node's output to return
-                    
+
                     # Strategy 1: Look for leaf nodes (nodes without outbound edges)
-                    leaf_nodes = [node_id for node_id, node in graph.nodes.items() 
-                                 if not node.outbound_edges]
-                    
+                    leaf_nodes = [
+                        node_id
+                        for node_id, node in graph.nodes.items()
+                        if not node.outbound_edges
+                    ]
+
                     if len(leaf_nodes) == 1:
                         # Single leaf node - clear choice for output
-                        logger.debug(f"Using output from single leaf node: {leaf_nodes[0]}")
+                        logger.debug(
+                            f"Using output from single leaf node: {leaf_nodes[0]}"
+                        )
                         if leaf_nodes[0] in results:
                             return results[leaf_nodes[0]]
-                    
+
                     # Strategy 2: Look for the node with the original operator's ID
                     original_node_id = str(op_id)
                     if original_node_id in results:
-                        logger.debug(f"Using output from original operator node: {original_node_id}")
+                        logger.debug(
+                            f"Using output from original operator node: {original_node_id}"
+                        )
                         return results[original_node_id]
-                        
+
                     # Strategy 3: If there are multiple leaf nodes but all have identical results,
                     # arbitrarily choose one
                     if len(leaf_nodes) > 1:
-                        logger.debug(f"Found {len(leaf_nodes)} leaf nodes, checking result equality")
+                        logger.debug(
+                            f"Found {len(leaf_nodes)} leaf nodes, checking result equality"
+                        )
                         first_result = results.get(leaf_nodes[0])
-                        if all(results.get(node) == first_result for node in leaf_nodes):
-                            logger.debug(f"All leaf nodes have identical results, using first one")
+                        if all(
+                            results.get(node) == first_result for node in leaf_nodes
+                        ):
+                            logger.debug(
+                                f"All leaf nodes have identical results, using first one"
+                            )
                             return first_result
-                    
+
                     # Strategy 4: Check if there's a node with "_output" in the name
                     output_nodes = [nid for nid in results.keys() if "_output" in nid]
                     if output_nodes:
-                        logger.debug(f"Using output from node with '_output' in name: {output_nodes[0]}")
+                        logger.debug(
+                            f"Using output from node with '_output' in name: {output_nodes[0]}"
+                        )
                         return results[output_nodes[0]]
-                    
+
                     # Last attempt: see if any graph metadata can help us find the output node
                     if "output_node" in graph.metadata:
                         output_node = graph.metadata["output_node"]
                         if output_node in results:
-                            logger.debug(f"Using output node from graph metadata: {output_node}")
+                            logger.debug(
+                                f"Using output node from graph metadata: {output_node}"
+                            )
                             return results[output_node]
-                    
+
                     # If we got here, we couldn't determine the correct output
                     # Log the issue for debugging
                     logger.warning(
@@ -290,22 +311,24 @@ def jit(
                     )
                 except Exception as e:
                     # If graph execution fails, log the error and fall back to direct execution
-                    logger.warning(f"Error executing graph: {e}. Falling back to direct execution.")
-            
+                    logger.warning(
+                        f"Error executing graph: {e}. Falling back to direct execution."
+                    )
+
             # Phase 2: Tracing and direct execution
             # -------------------------------------------------
             # Execute the original call directly (when no cached graph or graph execution failed)
             start_time = time.time()
             output = original_call(self=self, inputs=inputs)
             end_time = time.time()
-            
+
             # Phase 3: Record trace and update graph cache
             # -------------------------------------------------
             # Record trace if in a tracer context or force_trace is enabled
             if tracer is not None or force_trace_local:
                 # Get operator name, preferring the 'name' attribute if available
                 operator_name = getattr(self, "name", self.__class__.__name__)
-                
+
                 # Create trace record
                 record = TraceRecord(
                     operator_name=operator_name,
@@ -314,39 +337,48 @@ def jit(
                     outputs=output,
                     timestamp=end_time,
                 )
-                
+
                 # Add to tracer if available
                 if tracer is not None:
                     tracer.add_record(record=record)
-                    
+
                     # Check if this is an appropriate time to build a graph:
                     # 1. If tracing was forced (test/debug case)
                     # 2. If this is a top-level call (no prior records with same node_id)
                     # 3. If we've collected enough records to make a meaningful graph
                     build_graph = (
-                        force_trace_local or
-                        not any(r.node_id == str(id(self)) for r in tracer.records[:-1]) or
-                        len(tracer.records) >= 3  # Minimum threshold for useful graph
+                        force_trace_local
+                        or not any(
+                            r.node_id == str(id(self)) for r in tracer.records[:-1]
+                        )
+                        or len(tracer.records)
+                        >= 3  # Minimum threshold for useful graph
                     )
-                    
+
                     if build_graph:
                         # Import here to avoid circular imports
                         from ember.xcs.tracer.autograph import AutoGraphBuilder
-                        
+
                         # Build a graph from the accumulated trace records
-                        logger.debug(f"Building graph from {len(tracer.records)} trace records")
+                        logger.debug(
+                            f"Building graph from {len(tracer.records)} trace records"
+                        )
                         graph_builder = AutoGraphBuilder()
                         graph = graph_builder.build_graph(tracer.records)
-                        
+
                         # Only cache the graph if it has multiple nodes (otherwise no benefit)
                         if len(graph.nodes) > 1:
                             logger.debug(f"Caching graph with {len(graph.nodes)} nodes")
                             # Add metadata to help with output node identification
-                            graph.metadata["output_node"] = graph.nodes[list(graph.nodes.keys())[-1]].node_id
+                            graph.metadata["output_node"] = graph.nodes[
+                                list(graph.nodes.keys())[-1]
+                            ].node_id
                             _COMPILED_GRAPHS[op_id] = graph
                         else:
-                            logger.debug(f"Not caching trivial graph with {len(graph.nodes)} nodes")
-            
+                            logger.debug(
+                                f"Not caching trivial graph with {len(graph.nodes)} nodes"
+                            )
+
             # Return the output from direct execution
             return output
 

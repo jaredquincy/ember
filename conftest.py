@@ -253,6 +253,19 @@ def pytest_configure(config):
         "markers", "discovery: mark tests that interact with model discovery"
     )
     config.addinivalue_line("markers", "xcs: mark tests related to XCS functionality")
+    config.addinivalue_line(
+        "markers", "performance: mark tests that measure performance characteristics"
+    )
+
+
+def pytest_addoption(parser):
+    """Add custom command line options to pytest."""
+    parser.addoption(
+        "--run-perf-tests",
+        action="store_true",
+        default=False,
+        help="Run performance tests that are skipped by default",
+    )
 
 
 # Add pytest.config helper to access the config during tests

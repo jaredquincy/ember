@@ -5,7 +5,7 @@ in Ember, offering high-performance execution capabilities for computational gra
 just-in-time tracing, and parallel execution transformations.
 
 Examples:
-    # Using JIT compilation for operators
+    # Basic JIT compilation (defaults to trace-based)
     from ember.api import xcs
 
     @xcs.jit
@@ -14,18 +14,31 @@ Examples:
             # Complex computation here
             return result
 
-    # Using structural JIT for optimized execution
-    @xcs.structural_jit(execution_strategy="parallel")
-    class CompositeOperator(Operator):
+    # Using trace-based JIT with specific options
+    @xcs.jit.trace(sample_input={"query": "test"})
+    class TracedOperator(Operator):
+        def forward(self, *, inputs):
+            # Complex computation here
+            return result
+
+    # Using structural JIT for optimized parallel execution
+    @xcs.jit.structural(execution_strategy="parallel")
+    class ParallelOperator(Operator):
         def __init__(self):
             self.op1 = SubOperator1()
             self.op2 = SubOperator2()
 
-        def __call__(self, *, inputs):
+        def forward(self, *, inputs):
             # Multi-step computation automatically parallelized
             result1 = self.op1(inputs=inputs)
             result2 = self.op2(inputs=inputs)
             return combine(result1, result2)
+
+    # Legacy syntax (still supported but not recommended)
+    @xcs.structural_jit(execution_strategy="parallel")
+    class LegacyOperator(Operator):
+        # implementation...
+        pass
 
     # Using vectorized mapping
     @xcs.vmap(in_axes=(0, None))
