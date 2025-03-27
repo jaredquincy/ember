@@ -45,6 +45,7 @@ from __future__ import annotations
 import functools
 import inspect
 import logging
+import time
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from typing import (
@@ -68,19 +69,18 @@ from ember.xcs.engine.xcs_engine import (
     compile_graph,
 )
 from ember.xcs.engine.xcs_noop_scheduler import XCSNoOpScheduler
-
-# Import XCS components
 from ember.xcs.graph.xcs_graph import XCSGraph
+from ember.xcs.tracer.tracer_decorator import JITCache
 
 # Logger for this module
 logger = logging.getLogger(__name__)
 
 # Type variables
-T = TypeVar("T")
-OperatorType = TypeVar("OperatorType", bound="Operator")
+T = TypeVar("T")  # Generic return type
+OpT = TypeVar("OpT", bound="Operator")  # Operator type
 
 # Cache for compiled graphs
-_COMPILED_GRAPHS: Dict[int, XCSGraph] = {}
+_structural_jit_cache = JITCache[XCSGraph]()
 
 
 # -----------------------------------------------------------------------------
@@ -94,7 +94,7 @@ class Operator(Protocol):
 
     def __call__(self, *, inputs: Dict[str, Any]) -> Dict[str, Any]:
         """Execute the operator with provided inputs."""
-        ...
+        pass
 
 
 @runtime_checkable
@@ -103,12 +103,43 @@ class PytreeCompatible(Protocol):
 
     def __pytree_flatten__(self) -> Tuple[List[Any], Dict[str, Any]]:
         """Flatten object into a list of dynamic values and static metadata."""
-        ...
+        pass
 
     @classmethod
     def __pytree_unflatten__(cls, metadata: Dict[str, Any], values: List[Any]) -> Any:
         """Reconstruct object from flattened values and metadata."""
-        ...
+        pass
+
+
+@runtime_checkable
+class StructureDependency(Protocol):
+    """Protocol for operators to declare structural dependencies.
+
+    Operators implementing this protocol can explicitly define their
+    structural dependencies, improving the precision of structural JIT
+    and enabling state-aware caching.
+    """
+
+    def get_structural_dependencies(self) -> Dict[str, List[str]]:
+        """Return mapping of operator attribute names to their dependencies.
+
+        Returns:
+            Dict mapping attribute names to lists of attribute names they depend on.
+            Example: {"output_field": ["input_field1", "input_field2"]}
+        """
+        pass
+
+    def get_structure_signature(self) -> str:
+        """Return a signature representing the current structure state.
+
+        When this signature changes, cached structure graphs should be invalidated.
+        This could be a hash of structure variables or a version number that
+        the operator increments when structure changes.
+
+        Returns:
+            A string signature representing the current structure state.
+        """
+        pass
 
 
 # -----------------------------------------------------------------------------
@@ -243,6 +274,8 @@ def _analyze_operator_structure(operator: Operator) -> OperatorStructureGraph:
     """Analyze operator composition structure.
 
     Identifies nested operators with their parent-child relationships.
+    If the operator implements the StructureDependency protocol, uses
+    the explicitly declared dependencies for more precise analysis.
 
     Args:
         operator: Root operator
@@ -250,6 +283,59 @@ def _analyze_operator_structure(operator: Operator) -> OperatorStructureGraph:
     Returns:
         Operator structure graph
     """
+    graph = OperatorStructureGraph()
+    visited = set()
+    logger = logging.getLogger("ember.xcs.tracer.structural_jit")
+
+    # First check for explicit structural dependencies
+    if isinstance(operator, StructureDependency) and hasattr(
+        operator, "get_structural_dependencies"
+    ):
+        try:
+            explicit_deps = operator.get_structural_dependencies()
+            class_name = operator.__class__.__name__
+            logger.debug(f"Using explicit structural dependencies for {class_name}")
+
+            # Create the root node
+            root_node_id = f"node_{id(operator)}"
+            graph.nodes[root_node_id] = OperatorStructureNode(
+                operator=operator, node_id=root_node_id, attribute_path="root"
+            )
+            graph.root_id = root_node_id
+
+            # Add dependencies from the explicit declaration
+            for attr_name, _ in explicit_deps.items():
+                # Skip if we can't get the attribute
+                if not hasattr(operator, attr_name):
+                    continue
+
+                # Add dependent operator if it exists
+                attr_value = getattr(operator, attr_name)
+                if isinstance(attr_value, Operator):
+                    attr_node_id = f"node_{id(attr_value)}"
+                    graph.nodes[attr_node_id] = OperatorStructureNode(
+                        operator=attr_value,
+                        node_id=attr_node_id,
+                        attribute_path=f"root.{attr_name}",
+                        parent_id=root_node_id,
+                    )
+
+            # If we successfully used explicit dependencies, return now
+            if len(graph.nodes) > 1:  # More than just the root node
+                return graph
+
+            # Otherwise fall back to heuristic analysis
+            logger.debug(
+                "Explicit dependencies produced incomplete graph, "
+                "falling back to heuristic analysis"
+            )
+        except Exception as e:
+            logger.warning(
+                f"Error using explicit structural dependencies: {e}. "
+                f"Falling back to heuristic analysis."
+            )
+
+    # Reset graph for heuristic analysis
     graph = OperatorStructureGraph()
     visited = set()
 
@@ -354,7 +440,8 @@ def _build_xcs_graph_from_structure(
     """Build execution graph from operator structure.
 
     Creates a graph with nodes and edges based on the analyzed
-    operator composition structure.
+    operator composition structure. Sets explicit output node metadata
+    for deterministic result extraction.
 
     Args:
         operator: Root operator
@@ -374,6 +461,26 @@ def _build_xcs_graph_from_structure(
     for node_id, node in structure.nodes.items():
         if node.parent_id:
             graph.add_edge(from_id=node.parent_id, to_id=node_id)
+
+    # Try to determine and set the output node for deterministic result extraction
+    leaf_nodes = [
+        node_id
+        for node_id, node in structure.nodes.items()
+        if node_id not in [edge.from_node for edge in graph.edges.values()]
+    ]
+
+    if leaf_nodes:
+        # Use the root node if it's a leaf (single node graph)
+        if structure.root_id in leaf_nodes:
+            output_node_id = structure.root_id
+        else:
+            # Otherwise use the last leaf node in the list
+            output_node_id = leaf_nodes[-1]
+
+        # Set explicit output node ID metadata
+        graph.metadata["output_node_id"] = output_node_id
+        # Legacy metadata for backward compatibility
+        graph.metadata["output_node"] = output_node_id
 
     return graph
 
@@ -409,8 +516,9 @@ def _execute_with_engine(
 
     # Get appropriate scheduler based on strategy and graph
     scheduler = get_scheduler(graph, config)
+    scheduler_name = scheduler.__class__.__name__
     logger.debug(
-        f"Executing graph with {len(graph.nodes)} nodes using {scheduler.__class__.__name__}"
+        f"Executing graph with {len(graph.nodes)} nodes using {scheduler_name}"
     )
 
     try:
@@ -423,7 +531,8 @@ def _execute_with_engine(
         )
 
         # Find appropriate output from results
-        return _extract_result(graph, results, logger)
+        result = _extract_result(graph, results, logger)
+        return result
 
     except Exception as e:
         # Handle execution errors
@@ -447,7 +556,8 @@ def _extract_result(
 ) -> Dict[str, Any]:
     """Extract the appropriate result from graph execution output.
 
-    Uses a series of heuristics to identify the intended output node.
+    First tries explicit metadata, then falls back to heuristics if needed.
+    The explicit output_node_id metadata is preferred, matching the enhanced JIT system.
 
     Args:
         graph: The executed graph
@@ -457,10 +567,23 @@ def _extract_result(
     Returns:
         The extracted result
     """
+    # Strategy 0: Explicit output node ID (new enhanced approach)
+    if "output_node_id" in graph.metadata:
+        output_node_id = graph.metadata["output_node_id"]
+        if output_node_id in results:
+            logger.debug(f"Using explicit output_node_id: {output_node_id}")
+            return results[output_node_id]
+
+        logger.warning(
+            f"Output node '{output_node_id}' not found in results. "
+            f"Available nodes: {list(results.keys())}"
+        )
+
     # Strategy 1: Single node graph
     if len(graph.nodes) == 1:
         node_id = next(iter(graph.nodes.keys()))
         if node_id in results:
+            logger.debug(f"Using only node: {node_id}")
             return results[node_id]
 
     # Strategy 2: Single leaf node
@@ -468,28 +591,33 @@ def _extract_result(
         node_id for node_id, node in graph.nodes.items() if not node.outbound_edges
     ]
     if len(leaf_nodes) == 1 and leaf_nodes[0] in results:
+        logger.debug(f"Using single leaf node: {leaf_nodes[0]}")
         return results[leaf_nodes[0]]
 
     # Strategy 3: Original operator node
     if "original_operator" in results:
+        logger.debug("Using original_operator node")
         return results["original_operator"]
 
-    # Strategy 4: Output node from metadata
+    # Strategy 4: Legacy output node from metadata
     if "output_node" in graph.metadata and graph.metadata["output_node"] in results:
+        logger.debug(f"Using legacy output_node: {graph.metadata['output_node']}")
         return results[graph.metadata["output_node"]]
 
     # Strategy 5: Identical leaf node results
-    if len(leaf_nodes) > 1:
+    if leaf_nodes:
         leaf_results = [results.get(node) for node in leaf_nodes if node in results]
         if leaf_results and all(r == leaf_results[0] for r in leaf_results):
+            logger.debug(f"Using identical result from {len(leaf_nodes)} leaf nodes")
             return leaf_results[0]
 
     # Strategy 6: Cached original result
     if hasattr(graph, "original_result") and graph.original_result is not None:
+        logger.debug("Using cached original result")
         return graph.original_result
 
     # Strategy 7: Return all results
-    logger.debug("Could not determine specific output node")
+    logger.debug("Could not determine specific output node, returning all results")
     return results
 
 
@@ -499,13 +627,13 @@ def _extract_result(
 
 
 def structural_jit(
-    func: Optional[Type[OperatorType]] = None,
+    func: Optional[Type[OpT]] = None,
     *,
     execution_strategy: str = "auto",
     parallel_threshold: int = 5,
     max_workers: Optional[int] = None,
     cache_graph: bool = True,
-) -> Union[Callable[[Type[OperatorType]], Type[OperatorType]], Type[OperatorType]]:
+) -> Union[Callable[[Type[OpT]], Type[OpT]], Type[OpT]]:
     """Structure-based JIT optimization for operators.
 
     Analyzes operator composition structure to build optimized execution graphs
@@ -538,7 +666,7 @@ def structural_jit(
         ```
     """
 
-    def decorator(cls: Type[OperatorType]) -> Type[OperatorType]:
+    def decorator(cls: Type[OpT]) -> Type[OpT]:
         """Inner decorator applied to operator class."""
         # Verify interface compatibility
         if not callable(cls) or not callable(cls.__call__):
@@ -556,7 +684,7 @@ def structural_jit(
         original_call = cls.__call__
 
         @functools.wraps(original_init)
-        def init_wrapper(self: OperatorType, *args: Any, **kwargs: Any) -> None:
+        def init_wrapper(self: OpT, *args: Any, **kwargs: Any) -> None:
             """Wrapped initialization with structure analysis."""
             # Initialize operator
             original_init(self, *args, **kwargs)
@@ -571,9 +699,7 @@ def structural_jit(
             self._jit_xcs_graph = None
 
         @functools.wraps(original_call)
-        def call_wrapper(
-            self: OperatorType, *, inputs: Dict[str, Any]
-        ) -> Dict[str, Any]:
+        def call_wrapper(self: OpT, *, inputs: Dict[str, Any]) -> Dict[str, Any]:
             """Wrapped execution with graph-based optimization."""
             # Handle disabled JIT
             if getattr(self, "_jit_enabled", True) is False:
@@ -587,39 +713,73 @@ def structural_jit(
                 # Set recursion guard
                 self._jit_in_execution = True
 
+                # Get state signature if available
+                state_signature = None
+                if isinstance(self, StructureDependency) and hasattr(
+                    self, "get_structure_signature"
+                ):
+                    try:
+                        state_signature = self.get_structure_signature()
+                    except Exception as e:
+                        logger.warning(f"Error getting structure signature: {e}")
+
+                # Try to get cached graph with state validation
+                graph = None
+                if self._jit_cache_graph:
+                    graph = _structural_jit_cache.get_with_state(self, state_signature)
+
                 # Use cached graph if available
-                if self._jit_cache_graph and self._jit_xcs_graph is not None:
-                    return _execute_with_engine(
-                        graph=self._jit_xcs_graph,
+                if graph is not None:
+                    # Measure execution time for metrics
+                    execution_start = time.time()
+                    result = _execute_with_engine(
+                        graph=graph,
                         inputs=inputs,
                         config=self._jit_config,
                     )
+                    execution_duration = time.time() - execution_start
+                    _structural_jit_cache.metrics.record_execution(execution_duration)
+                    return result
 
                 # First call - build the graph
-                if self._jit_xcs_graph is None:
-                    # Get original results
-                    original_result = original_call(self, inputs=inputs)
+                # Get original results
+                original_result = original_call(self, inputs=inputs)
 
-                    # Build and configure graph
-                    self._jit_xcs_graph = _build_xcs_graph_from_structure(
-                        operator=self,
-                        structure=self._jit_structure_graph,
-                        sample_input=inputs,
-                    )
+                # Measure compilation time for metrics
+                compilation_start = time.time()
 
-                    # Save original result and add original operator node
-                    self._jit_xcs_graph.original_result = original_result
-                    self._jit_xcs_graph.add_node(
-                        operator=original_call.__get__(self),
-                        node_id="original_operator",
-                    )
+                # Build and configure graph
+                structure = self._jit_structure_graph
+                if structure is None:
+                    # Just in case structure wasn't analyzed during init
+                    structure = _analyze_operator_structure(self)
+                    self._jit_structure_graph = structure
 
-                    return original_result
-
-                # Execute with engine
-                return _execute_with_engine(
-                    graph=self._jit_xcs_graph, inputs=inputs, config=self._jit_config
+                graph = _build_xcs_graph_from_structure(
+                    operator=self,
+                    structure=structure,
+                    sample_input=inputs,
                 )
+
+                # Save original result and add original operator node
+                graph.original_result = original_result
+                graph.add_node(
+                    operator=original_call.__get__(self),
+                    node_id="original_operator",
+                )
+
+                # Record compilation time
+                compilation_duration = time.time() - compilation_start
+                _structural_jit_cache.metrics.record_compilation(compilation_duration)
+
+                # Cache the graph with state signature
+                if self._jit_cache_graph:
+                    _structural_jit_cache.set(self, graph, state_signature)
+
+                # Update instance variable for backward compatibility
+                self._jit_xcs_graph = graph
+
+                return original_result
             finally:
                 self._jit_in_execution = False
 
@@ -630,7 +790,11 @@ def structural_jit(
         # Add control utilities
         cls.disable_jit = lambda self: setattr(self, "_jit_enabled", False)
         cls.enable_jit = lambda self: setattr(self, "_jit_enabled", True)
-        cls.clear_graph_cache = lambda self: setattr(self, "_jit_xcs_graph", None)
+        cls.clear_graph_cache = lambda self: (
+            _structural_jit_cache.invalidate(self),
+            setattr(self, "_jit_xcs_graph", None),
+        )
+        cls.get_jit_metrics = lambda self: _structural_jit_cache.get_metrics()
 
         return cls
 

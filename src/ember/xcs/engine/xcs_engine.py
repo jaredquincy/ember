@@ -392,23 +392,34 @@ def execute_graph(
                 # Collect inputs from predecessors or use global input for source nodes
                 try:
                     if not node.inbound_edges:
+                        # Source node: use global input
                         inputs = (
                             global_input.copy()
                             if hasattr(global_input, "copy")
                             else global_input
                         )
                     else:
-                        # Starting with empty dict if we have inbound edges
-                        inputs = {}
-                        for pred_id in node.inbound_edges:
-                            if hasattr(inputs, "update") and callable(inputs.update):
-                                inputs.update(results[pred_id])
-                            else:
-                                # For non-dictionary inputs, set to the first result
-                                inputs = results[pred_id]
-                                break
-                except (AttributeError, TypeError):
-                    # If copy or update fails, use global_input for source nodes
+                        # Check if graph supports field-level mappings
+                        if hasattr(graph, "prepare_node_inputs") and callable(
+                            graph.prepare_node_inputs
+                        ):
+                            # Use field-level mapping for precise data flow
+                            inputs = graph.prepare_node_inputs(node_id, results)
+                        else:
+                            # Fallback to legacy behavior: merge all predecessor outputs
+                            inputs = {}
+                            for pred_id in node.inbound_edges:
+                                if hasattr(inputs, "update") and callable(
+                                    inputs.update
+                                ):
+                                    inputs.update(results[pred_id])
+                                else:
+                                    # For non-dictionary inputs, set to the first result
+                                    inputs = results[pred_id]
+                                    break
+                except (AttributeError, TypeError) as e:
+                    logger.warning(f"Error preparing inputs for node {node_id}: {e}")
+                    # If prepare_node_inputs or update fails, use global_input for source nodes
                     # or first predecessor result for non-source nodes
                     inputs = (
                         global_input
@@ -442,25 +453,36 @@ def execute_graph(
                     # Collect inputs from predecessors or use global input for source nodes
                     try:
                         if not node.inbound_edges:
+                            # Source node: use global input
                             inputs = (
                                 global_input.copy()
                                 if hasattr(global_input, "copy")
                                 else global_input
                             )
                         else:
-                            # Starting with empty dict if we have inbound edges
-                            inputs = {}
-                            for pred_id in node.inbound_edges:
-                                if hasattr(inputs, "update") and callable(
-                                    inputs.update
-                                ):
-                                    inputs.update(results[pred_id])
-                                else:
-                                    # For non-dictionary inputs, set to the first result
-                                    inputs = results[pred_id]
-                                    break
-                    except (AttributeError, TypeError):
-                        # If copy or update fails, use global_input for source nodes
+                            # Check if graph supports field-level mappings
+                            if hasattr(graph, "prepare_node_inputs") and callable(
+                                graph.prepare_node_inputs
+                            ):
+                                # Use field-level mapping for precise data flow
+                                inputs = graph.prepare_node_inputs(node_id, results)
+                            else:
+                                # Fallback to legacy behavior: merge all predecessor outputs
+                                inputs = {}
+                                for pred_id in node.inbound_edges:
+                                    if hasattr(inputs, "update") and callable(
+                                        inputs.update
+                                    ):
+                                        inputs.update(results[pred_id])
+                                    else:
+                                        # For non-dictionary inputs, set to the first result
+                                        inputs = results[pred_id]
+                                        break
+                    except (AttributeError, TypeError) as e:
+                        logger.warning(
+                            f"Error preparing inputs for node {node_id}: {e}"
+                        )
+                        # If prepare_node_inputs or update fails, use global_input for source nodes
                         # or first predecessor result for non-source nodes
                         inputs = (
                             global_input
