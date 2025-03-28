@@ -104,15 +104,15 @@ class QuestionRefinement(Operator[QuestionRefinementInputs, QuestionRefinementOu
 
     def forward(self, *, inputs: QuestionRefinementInputs) -> QuestionRefinementOutputs:
         prompt = self.specification.render_prompt(inputs=inputs)
-        
+
         try:
             response = self.lm_module(prompt=prompt)
-            
+
             # Get text from response
             refined_query = (
                 response.strip() if isinstance(response, str) else str(response).strip()
             )
-            
+
             return QuestionRefinementOutputs(refined_query=refined_query)
         except Exception as e:
             # Graceful error handling for model failures

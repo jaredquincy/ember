@@ -3,11 +3,50 @@ Root conftest.py for pytest configuration
 """
 
 import importlib
+import logging
 import os
 import sys
 from pathlib import Path
 
 import pytest
+
+
+# Patch Python's logging handlers to gracefully handle closed streams at process shutdown
+# This prevents "I/O operation on closed file" errors from HTTP libraries during pytest teardown
+def _patch_logging_for_shutdown():
+    """
+    Configure logging to handle closed streams during Python interpreter shutdown.
+
+    This patch prevents "I/O operation on closed file" errors that occur when HTTP clients
+    are garbage collected during interpreter shutdown after logging handlers have been closed.
+    """
+    if not hasattr(logging.StreamHandler, "_ember_patched"):
+        # Save the original emit method
+        original_emit = logging.StreamHandler.emit
+
+        # Create a version that swallows "closed file" errors during shutdown
+        def safe_emit(self, record):
+            """StreamHandler.emit that handles closed streams during shutdown."""
+            try:
+                original_emit(self, record)
+            except ValueError as e:
+                if "closed file" not in str(e).lower():
+                    raise
+            except (IOError, OSError) as e:
+                if "closed" not in str(e).lower():
+                    raise
+
+        # Apply the patch
+        logging.StreamHandler.emit = safe_emit
+        logging.StreamHandler._ember_patched = True
+
+        # Also configure the specific loggers from httpcore that cause the issues
+        for name in ["httpcore.connection", "httpcore.http11"]:
+            logging.getLogger(name).setLevel(logging.INFO)
+
+
+# Apply the patch as early as possible
+_patch_logging_for_shutdown()
 
 # Get absolute paths
 PROJECT_ROOT = Path(__file__).parent.absolute()

@@ -222,24 +222,24 @@ def load_from_env(prefix: str = "EMBER") -> Dict[str, Any]:
 
 def normalize_config_schema(config_data: Dict[str, Any]) -> Dict[str, Any]:
     """Normalize configuration data to the latest schema format.
-    
-    Transforms legacy configuration formats to the current schema, 
-    handling field names and structure changes without modifying the 
+
+    Transforms legacy configuration formats to the current schema,
+    handling field names and structure changes without modifying the
     schema classes themselves.
-    
+
     Args:
         config_data: Raw configuration dictionary
-        
+
     Returns:
         Normalized configuration ready for validation
     """
     result = config_data.copy()
-    
+
     # Handle legacy registry paths
     if "model_registry" in result and "registry" not in result:
         # Map model_registry to registry namespace
         result["registry"] = result.pop("model_registry")
-    
+
     # Process provider configurations
     if "registry" in result and "providers" in result["registry"]:
         providers = result["registry"]["providers"]
@@ -253,24 +253,24 @@ def normalize_config_schema(config_data: Dict[str, Any]) -> Dict[str, Any]:
                         if isinstance(model, dict):
                             # Use ID as key, default to model name if no ID
                             model_id = model.get("id", model.get("name", "unknown"))
-                            
+
                             # Ensure required fields are present
                             if "provider" not in model:
                                 model["provider"] = provider_name
-                                
+
                             models_dict[model_id] = model
                     provider_config["models"] = models_dict
-                
+
                 # Ensure each model has a provider field
                 if isinstance(provider_config["models"], dict):
                     for model_id, model in provider_config["models"].items():
                         if isinstance(model, dict) and "provider" not in model:
                             model["provider"] = provider_name
-                            
+
                             # If provider is set but id doesn't contain provider prefix, add it
                             if "id" in model and ":" not in model["id"]:
                                 model["id"] = f"{provider_name}:{model['id']}"
-    
+
     return result
 
 
@@ -308,7 +308,7 @@ def load_config(
 
         # Resolve environment variables in strings
         config_data = resolve_env_vars(config_data)
-        
+
         # Normalize config to current schema before validation
         config_data = normalize_config_schema(config_data)
 

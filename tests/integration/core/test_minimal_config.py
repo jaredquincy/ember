@@ -307,7 +307,7 @@ def test_config_to_registry_conversion():
                 mock_info.model_id = "openai:gpt-4"
                 mock_info.id = "openai:gpt-4"
                 mock_provider = mock.MagicMock()
-                mock_provider.name = "Openai"  
+                mock_provider.name = "Openai"
                 mock_info.provider = mock_provider
                 mock_info.api_key = "test-openai-key"
                 mock_convert.return_value = mock_info

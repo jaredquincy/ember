@@ -133,61 +133,61 @@ class EmberModel(BaseModel, Mapping):
             return getattr(self, key)
         except AttributeError:
             raise KeyError(key)
-            
+
     def keys(self) -> list[str]:
         """
         Return a list of attribute names, like a dictionary's keys() method.
-        
+
         Returns:
             List of attribute names in this model
         """
         return list(self.model_fields.keys())
-        
+
     def values(self) -> list[Any]:
         """
         Return a list of attribute values, like a dictionary's values() method.
-        
+
         Returns:
             List of attribute values in this model
         """
         return [getattr(self, key) for key in self.keys()]
-        
+
     def items(self) -> list[tuple[str, Any]]:
         """
         Return a list of (key, value) pairs, like a dictionary's items() method.
-        
+
         Returns:
             List of (key, value) tuples for this model
         """
         return [(key, getattr(self, key)) for key in self.keys()]
-        
+
     def __iter__(self) -> Iterator[str]:
         """
         Implement iterator protocol for the Mapping ABC.
-        
+
         Returns:
             Iterator over attribute names
         """
         return iter(self.keys())
-        
+
     def __len__(self) -> int:
         """
         Return the number of attributes.
-        
+
         Returns:
             Number of attributes in this model
         """
         return len(self.keys())
-        
+
     def __eq__(self, other: object) -> bool:
         """
         Implement equality comparison with dictionaries.
-        
+
         This allows direct comparison with dictionaries based on content.
-        
+
         Args:
             other: Object to compare with
-            
+
         Returns:
             True if the model is equal to the other object, False otherwise
         """
@@ -198,37 +198,38 @@ class EmberModel(BaseModel, Mapping):
             # Compare with another EmberModel based on content
             return self.to_dict() == other.to_dict()
         return NotImplemented
-    
+
     def __copy__(self) -> "EmberModel":
         """
         Create a shallow copy of this model.
-        
+
         Returns:
             A new instance of this model with the same data
         """
         return self.__class__(**self.to_dict())
-        
+
     def __deepcopy__(self, memo: Dict[int, Any]) -> "EmberModel":
         """
         Create a deep copy of this model.
-        
+
         Args:
             memo: Memoization dictionary for avoiding duplicate copies
-            
+
         Returns:
             A deep copy of this model
         """
         import copy
+
         return self.__class__(**copy.deepcopy(self.to_dict(), memo))
-        
+
     def get(self, key: str, default: Any = None) -> Any:
         """
         Dictionary-like get method with default value for missing keys.
-        
+
         Args:
             key: Attribute name to access
             default: Value to return if key is not found
-            
+
         Returns:
             Value of the requested attribute or default if not found
         """
