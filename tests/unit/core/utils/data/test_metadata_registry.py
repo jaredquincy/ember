@@ -234,11 +234,13 @@ class TestRegisterDecorator(unittest.TestCase):
 
     def test_register_decorator(self) -> None:
         """Test the register decorator function."""
+
         # Create a test class that will be used with the decorator
         class TestDataset:
             """Test dataset class."""
+
             pass
-            
+
         # Call the decorator function directly
         decorator = register(
             name="test_dataset",
@@ -246,13 +248,13 @@ class TestRegisterDecorator(unittest.TestCase):
             task_type=TaskType.MULTIPLE_CHOICE,
             description="Test dataset",
         )
-        
+
         # Apply the decorator to our class
         result = decorator(TestDataset)
-        
+
         # Verify the result is our class (decorator returns it)
         self.assertIs(result, TestDataset)
-        
+
         # Verify our class has the info attribute set
         self.assertTrue(hasattr(TestDataset, "info"))
         self.assertEqual(TestDataset.info.name, "test_dataset")
@@ -298,7 +300,7 @@ class TestInitializeRegistry(unittest.TestCase):
             "halueval",
             "my_shortanswer_ds",
             "aime",
-            "gpqa", 
+            "gpqa",
             "codeforces",
         ]
 

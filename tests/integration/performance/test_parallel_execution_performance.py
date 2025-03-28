@@ -250,8 +250,8 @@ class StructuralJITEnsembleOperator(Operator[TaskInput, EnsembleOutput]):
 # Performance Test Functions
 # --------------------------------
 @pytest.mark.skipif(
-    "not config.getoption('--run-perf-tests')",
-    reason="Performance tests are disabled by default. Run with --run-perf-tests flag.",
+    "not config.getoption('--run-perf-tests') and not config.getoption('--run-all-tests')",
+    reason="Performance tests are disabled by default. Run with --run-perf-tests or --run-all-tests flag.",
 )
 def test_sequential_vs_explicit_parallel():
     """Test performance difference between sequential and explicitly parallel execution."""
@@ -322,8 +322,8 @@ def test_sequential_vs_explicit_parallel():
 
 
 @pytest.mark.skipif(
-    "not config.getoption('--run-perf-tests')",
-    reason="Performance tests are disabled by default. Run with --run-perf-tests flag.",
+    "not config.getoption('--run-perf-tests') and not config.getoption('--run-all-tests')",
+    reason="Performance tests are disabled by default. Run with --run-perf-tests or --run-all-tests flag.",
 )
 def test_jit_trace_to_graph_parallel_speedup():
     """Test creating an XCS graph from a JIT trace and running with parallel scheduler."""

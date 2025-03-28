@@ -433,6 +433,12 @@ def execute_graph(
 
                 # Execute the node
                 try:
+                    # Auto-convert dict to EmberModel if needed - clean, minimal, type-safe
+                    if isinstance(inputs, dict) and "input_model" in node.metadata:
+                        input_model = node.metadata["input_model"]
+                        if hasattr(input_model, "from_dict"):
+                            inputs = input_model.from_dict(inputs)
+
                     node_result = node.operator(inputs=inputs)
                     results[node_id] = node_result
                 except Exception as e:
@@ -493,6 +499,12 @@ def execute_graph(
                     # Add node_id to inputs for tracking in test functions
                     if "node_name" in global_input:
                         inputs["node_name"] = node_id
+
+                    # Auto-convert dict to EmberModel if needed - clean, minimal, type-safe
+                    if isinstance(inputs, dict) and "input_model" in node.metadata:
+                        input_model = node.metadata["input_model"]
+                        if hasattr(input_model, "from_dict"):
+                            inputs = input_model.from_dict(inputs)
 
                     # Submit the job
                     futures[executor.submit(node.operator, inputs=inputs)] = node_id

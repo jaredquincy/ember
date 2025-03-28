@@ -46,7 +46,7 @@ from ember.core.utils.data.base.config import BaseDatasetConfig as DatasetConfig
 from ember.core.utils.data.base.models import DatasetEntry, DatasetInfo, TaskType
 from ember.core.utils.data.base.transformers import IDatasetTransformer
 from ember.core.utils.data.registry import (
-    UNIFIED_REGISTRY,
+    DATASET_REGISTRY,
     initialize_registry,
     register,
 )
@@ -135,8 +135,8 @@ class DatasetBuilder:
         Raises:
             ValueError: If dataset is not found in registry
         """
-        if not UNIFIED_REGISTRY.get(name=dataset_name):
-            available = UNIFIED_REGISTRY.list_datasets()
+        if not DATASET_REGISTRY.get(name=dataset_name):
+            available = DATASET_REGISTRY.list_datasets()
             raise ValueError(
                 f"Dataset '{dataset_name}' not found. Available datasets: {available}"
             )
@@ -307,9 +307,9 @@ class DatasetBuilder:
         from ember.core.utils.data.service import DatasetService
 
         # Get dataset entry from registry
-        dataset_entry = UNIFIED_REGISTRY.get(name=final_name)
+        dataset_entry = DATASET_REGISTRY.get(name=final_name)
         if not dataset_entry:
-            available = UNIFIED_REGISTRY.list_datasets()
+            available = DATASET_REGISTRY.list_datasets()
             raise ValueError(
                 f"Dataset '{final_name}' not found. Available datasets: {available}"
             )
@@ -356,11 +356,11 @@ def datasets(
     from ember.core.utils.data.base.validators import DatasetValidator
     from ember.core.utils.data.service import DatasetService
 
-    # Get dataset registration info from the unified registry
-    dataset_entry = UNIFIED_REGISTRY.get(name=name)
+    # Get dataset registration info from the registry
+    dataset_entry = DATASET_REGISTRY.get(name=name)
     if dataset_entry is None:
         raise ValueError(
-            f"Dataset '{name}' not found. Available: {UNIFIED_REGISTRY.list_datasets()}"
+            f"Dataset '{name}' not found. Available: {DATASET_REGISTRY.list_datasets()}"
         )
 
     # Create the data service pipeline
@@ -394,7 +394,7 @@ def list_available_datasets() -> List[str]:
     Returns:
         Sorted list of available dataset names
     """
-    return UNIFIED_REGISTRY.list_datasets()
+    return DATASET_REGISTRY.list_datasets()
 
 
 def get_dataset_info(name: str) -> Optional[DatasetInfo]:
@@ -406,7 +406,7 @@ def get_dataset_info(name: str) -> Optional[DatasetInfo]:
     Returns:
         Dataset information if found, None otherwise
     """
-    return UNIFIED_REGISTRY.get_info(name=name)
+    return DATASET_REGISTRY.get_info(name=name)
 
 
 __all__ = [

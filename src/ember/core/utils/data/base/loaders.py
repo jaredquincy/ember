@@ -6,6 +6,7 @@ from urllib.error import HTTPError
 
 from datasets import Dataset, DatasetDict, disable_caching, enable_caching, load_dataset
 from datasets.utils.logging import disable_progress_bar, enable_progress_bar
+from ember.core.exceptions import GatedDatasetAuthenticationError
 from huggingface_hub import HfApi
 
 logger: logging.Logger = logging.getLogger(__name__)
@@ -105,10 +106,24 @@ class HuggingFaceDatasetLoader(IDatasetLoader):
                 "Failed to download dataset '%s'." % dataset_name
             ) from http_err
         except Exception as exc:
-            logger.error("Unexpected error loading dataset %s: %s", dataset_name, exc)
-            raise RuntimeError(
-                "Error loading dataset '%s': %s" % (dataset_name, exc)
-            ) from exc
+            # Check for authentication error with gated datasets
+            if (
+                str(exc).find("is a gated dataset") >= 0
+                or str(exc).find("You must be authenticated") >= 0
+            ):
+                logger.error(
+                    "Authentication required for gated dataset %s", dataset_name
+                )
+                raise GatedDatasetAuthenticationError.for_huggingface_dataset(
+                    dataset_name
+                ) from exc
+            else:
+                logger.error(
+                    "Unexpected error loading dataset %s: %s", dataset_name, exc
+                )
+                raise RuntimeError(
+                    "Error loading dataset '%s': %s" % (dataset_name, exc)
+                ) from exc
         finally:
             disable_caching()
             disable_progress_bar()

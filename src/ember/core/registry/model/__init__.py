@@ -11,6 +11,9 @@ from ember.core.registry.model.base.registry.factory import ModelFactory
 
 # Registry components
 from ember.core.registry.model.base.registry.model_registry import ModelRegistry
+
+# Import submodules
+from ember.core.registry.model import examples
 from ember.core.registry.model.base.schemas.chat_schemas import (
     ChatRequest,
     ChatResponse,
@@ -91,6 +94,8 @@ __all__: List[str] = [
     "ModelRegistrationError",
     "ModelDiscoveryError",
     "load_model",
+    # Submodules
+    "examples",
 ]
 
 

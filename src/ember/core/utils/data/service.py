@@ -237,132 +237,62 @@ class DatasetService:
             List[DatasetEntry]: The list of processed DatasetEntry objects ready for consumption.
         """
         logger.info(
-            "[load_and_prepare] Starting process for dataset '%s' with dataset_name='%s', "
-            "config='%s', num_samples='%s'.",
+            "Processing dataset '%s' (source='%s', config='%s', samples=%s)",
             dataset_info.name,
             dataset_info.source,
             config,
             num_samples,
         )
 
-        logger.info(
-            "[load_and_prepare] Converting configuration for loader compatibility."
-        )
+        # Step 1: Resolve configuration
         resolved_config: Optional[str] = self._resolve_config_name(config=config)
-        logger.info("[load_and_prepare] Resolved configuration: '%s'.", resolved_config)
 
-        logger.info(
-            "[load_and_prepare] Loading data from dataset_name='%s'...",
-            dataset_info.source,
-        )
+        # Step 2: Load dataset
         dataset: Any = self._load_data(
             dataset_name=dataset_info.source, config=resolved_config
         )
-        logger.info("[load_and_prepare] Data loaded successfully.")
 
+        # Log dataset basic info at debug level
         if hasattr(dataset, "__len__"):
-            logger.info(
-                "[load_and_prepare] Dataset details: type=%s, size=%d",
+            logger.debug(
+                "Loaded dataset: type=%s, size=%d",
                 type(dataset),
                 len(dataset),
             )
-            if len(dataset) > 0:
-                logger.info(
-                    "[load_and_prepare] Sample record from dataset: %s", dataset
-                )
-        else:
-            logger.info(
-                "[load_and_prepare] Dataset type: %s, size: Unknown",
-                type(dataset),
-            )
 
+        # Step 3: Select split if specified
         config_obj: Optional[BaseDatasetConfig] = (
             config if isinstance(config, BaseDatasetConfig) else None
         )
-        logger.info(
-            "[load_and_prepare] Configuration object is %s.",
-            "a BaseDatasetConfig subclass" if config_obj else "None or a string",
-        )
-
-        logger.info("[load_and_prepare] Selecting requested split, if applicable.")
         dataset = self.select_split(dataset=dataset, config_obj=config_obj)
-        logger.info("[load_and_prepare] Split selection completed.")
 
-        logger.info("[load_and_prepare] Validating dataset structure.")
+        # Step 4: Validate dataset structure
         validated_data: Any = self._validate_structure(dataset=dataset)
-        logger.info("[load_and_prepare] Dataset structure validated successfully.")
 
-        if hasattr(validated_data, "__len__"):
-            logger.info(
-                "[load_and_prepare] Validated dataset details: type=%s, size=%d",
-                type(validated_data),
-                len(validated_data),
-            )
-            if len(validated_data) > 0:
-                logger.info(
-                    "[load_and_prepare] Sample record from validated data: %s",
-                    validated_data[0],
-                )
-        else:
-            logger.info(
-                "[load_and_prepare] Validated dataset type: %s, size: Unknown",
-                type(validated_data),
-            )
-
-        logger.info("[load_and_prepare] Applying data transformations.")
+        # Step 5: Apply transformations
         transformed_data: Any = self._transform_data(data=validated_data)
-        logger.info("[load_and_prepare] Data transformations applied.")
+        logger.debug("Applied %d transformations", len(self._transformers))
 
-        if hasattr(transformed_data, "__len__"):
-            logger.info(
-                "[load_and_prepare] Transformed dataset details: type=%s, size=%d",
-                type(transformed_data),
-                len(transformed_data),
-            )
-            if len(transformed_data) > 0:
-                logger.info(
-                    "[load_and_prepare] Sample record from transformed data: %s",
-                    transformed_data[0],
-                )
-        else:
-            logger.info(
-                "[load_and_prepare] Transformed dataset type: %s, size: Unknown",
-                type(transformed_data),
-            )
-
-        logger.info(
-            "[load_and_prepare] Validating presence of required keys in the transformed data."
-        )
+        # Step 6: Validate required keys
         self._validate_keys(data=transformed_data, prepper=prepper)
-        logger.info("[load_and_prepare] Required keys validated successfully.")
 
-        logger.info("[load_and_prepare] Sampling data as specified.")
+        # Step 7: Sample data
         sampled_data: Any = self._sample_data(
             data=transformed_data, num_samples=num_samples
         )
-        logger.info(
-            "[load_and_prepare] Sampling completed. Sampled data: %s", sampled_data
-        )
-        if hasattr(sampled_data, "__len__"):
-            logger.info(
-                "[load_and_prepare] Number of records after sampling: %d",
-                len(sampled_data),
-            )
-            if len(sampled_data) > 0:
-                logger.info(
-                    "[load_and_prepare] Sample record from sampled data: %s",
-                    sampled_data,
-                )
-        else:
-            logger.info("[load_and_prepare] Number of records after sampling: Unknown")
 
-        logger.info("[load_and_prepare] Preparing final dataset entries.")
+        # Log sampling results
+        if hasattr(sampled_data, "__len__"):
+            logger.debug("Sampled %d records", len(sampled_data))
+
+        # Step 8: Prepare final entries
         entries: List[DatasetEntry] = self._prep_data(
             dataset_info=dataset_info, sampled_data=sampled_data, prepper=prepper
         )
         logger.info(
-            "[load_and_prepare] Preparation complete. Generated %d DatasetEntry objects.",
+            "Generated %d DatasetEntry objects for '%s'",
             len(entries),
+            dataset_info.name,
         )
         return entries
 
@@ -370,12 +300,28 @@ class DatasetService:
 def load_dataset_entries(
     dataset_name: str, config: Optional[Dict[str, Any]] = None
 ) -> List[DatasetEntry]:
-    """Deprecated function. Use implementation in ember.core.utils.data instead.
+    """Legacy compatibility function redirecting to the unified registry implementation.
 
-    Raises:
-        NotImplementedError: This function should not be used.
+    This function is deprecated. Use ember.core.utils.data.load_dataset_entries instead.
+    This implementation forwards calls to the new implementation for backward compatibility.
+
+    Args:
+        dataset_name: Name of the dataset to load
+        config: Optional configuration dictionary
+
+    Returns:
+        List of DatasetEntry objects from the dataset
+
+    Deprecated since: 2025.03
     """
-    raise NotImplementedError(
-        "This legacy function is deprecated. "
-        "Use ember.core.utils.data.load_dataset_entries instead."
+    import warnings
+    from ember.core.utils.data import load_dataset_entries as new_load_dataset_entries
+
+    warnings.warn(
+        "load_dataset_entries in service.py is deprecated. "
+        "Use ember.core.utils.data.load_dataset_entries instead.",
+        DeprecationWarning,
+        stacklevel=2,  # Shows caller's line number, not this function
     )
+
+    return new_load_dataset_entries(dataset_name=dataset_name, config=config)

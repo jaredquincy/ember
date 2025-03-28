@@ -23,60 +23,183 @@ sys.path.insert(0, str(PROJECT_ROOT))
 # Configure asyncio as early as possible
 pytest_plugins = ["pytest_asyncio"]
 
-# Direct import from src.ember
-try:
-    # Import src.ember module
-    src_ember = importlib.import_module("src.ember")
+# Setup the Python import system for proper namespace imports
+#
+# This is the principled approach to handling imports for testing.
+# We create proper package structure that matches production usage while
+# allowing the code to be run from the source tree.
 
-    # Make it available as "ember"
-    sys.modules["ember"] = src_ember
-    print("Successfully mapped src.ember -> ember")
 
-    # Ensure initialize_ember is available
-    if hasattr(src_ember, "initialize_ember"):
-        print("Found initialize_ember in ember module")
-    else:
-        # Try to directly import it
+def setup_module_hierarchy():
+    """Set up the proper module hierarchy for testing.
+
+    This function ensures that modules like 'ember', 'ember.core', etc. are properly
+    available in sys.modules, preserving proper importing semantics.
+
+    It creates a proper module hierarchy that:
+    1. Creates empty parent modules first
+    2. Populates them with submodules in dependency order
+    3. Manages import dependencies properly
+    """
+    import types
+
+    # Register ember as a package
+    if "ember" not in sys.modules:
+        ember_pkg = types.ModuleType("ember")
+        ember_pkg.__path__ = [str(SRC_PATH / "ember")]
+        ember_pkg.__package__ = "ember"
+        ember_pkg.__file__ = str(SRC_PATH / "ember" / "__init__.py")
+        sys.modules["ember"] = ember_pkg
+        print("Created ember package in sys.modules")
+
+    # Define and register core subpackages (ensures they exist as packages)
+    subpackages = [
+        "core",
+        "xcs",
+        "api",
+        "core.registry",
+        "core.utils",
+        "core.types",
+        "core.config",
+        "xcs.tracer",
+        "core.registry.model",
+        "core.registry.operator",
+        "core.utils.data",
+        "core.utils.eval",
+    ]
+
+    for subpkg in subpackages:
+        full_pkg_name = f"ember.{subpkg}"
+        if full_pkg_name not in sys.modules:
+            # Create package module
+            pkg = types.ModuleType(full_pkg_name)
+            pkg.__package__ = full_pkg_name
+            pkg.__path__ = [str(SRC_PATH / "ember" / subpkg.replace(".", "/"))]
+            pkg.__file__ = str(
+                SRC_PATH / "ember" / subpkg.replace(".", "/") / "__init__.py"
+            )
+            sys.modules[full_pkg_name] = pkg
+            print(f"Created {full_pkg_name} package in sys.modules")
+
+    # Now load the actual module implementations in proper dependency order
+    modules_to_load = [
+        # Load in a dependency-aware order
+        "ember.core",
+        "ember.xcs",
+        "ember.api",
+        "ember",  # Load the top-level last as it depends on submodules
+    ]
+
+    for module_name in modules_to_load:
+        src_path = "src." + module_name
         try:
-            from src.ember import initialize_ember
+            # Import real implementation
+            implementation = importlib.import_module(src_path)
 
-            src_ember.initialize_ember = initialize_ember
-            print("Added initialize_ember to ember module")
+            # Update or replace the placeholder package
+            target_module = sys.modules[module_name]
+            target_module.__dict__.update(implementation.__dict__)
+
+            # Copy special attributes
+            for attr in [
+                "__all__",
+                "__version__",
+                "__path__",
+                "__file__",
+                "__package__",
+            ]:
+                if hasattr(implementation, attr):
+                    setattr(target_module, attr, getattr(implementation, attr))
+
+            print(f"Loaded implementation for {module_name}")
         except ImportError as e:
-            print(f"Warning: Could not import initialize_ember: {e}")
+            print(f"Warning: Could not load implementation for {module_name}: {e}")
 
-            # Create a stub implementation
-            def fallback_initialize_ember(
-                config_path=None,
-                auto_discover=True,
-                force_discovery=False,
-                api_keys=None,
-                env_prefix="EMBER_",
-                initialize_context=True,
-            ):
-                """Fallback implementation of initialize_ember for testing."""
-                from src.ember.core.registry.model.base.registry.model_registry import (
-                    ModelRegistry,
-                )
 
-                print("Using fallback initialize_ember implementation")
-                return ModelRegistry()
+# No module hierarchy setup function defined yet
 
-            src_ember.initialize_ember = fallback_initialize_ember
-            print("Created fallback initialize_ember function")
-except ImportError as e:
-    print(f"Error importing src.ember: {e}")
 
-# Setup module aliases for critical Ember components
-for base_module in ["core", "xcs", "api"]:
-    module_path = f"src.ember.{base_module}"
-    target_path = f"ember.{base_module}"
+# Setup module alias for API components
+# The API module is imported carefully due to its dependencies
+# We need to set up the module hierarchy correctly to avoid import issues
+def setup_api_modules():
+    """Set up the API module hierarchy with proper dependencies.
+
+    This function ensures that all API modules are imported in the correct order,
+    with proper dependency management to avoid circular imports.
+    """
+    # First, import and set up core dependencies that the API module needs
+    core_deps = [
+        ("src.ember.core.utils.data.base.models", "ember.core.utils.data.base.models"),
+        ("src.ember.core.utils.data.registry", "ember.core.utils.data.registry"),
+        ("src.ember.core.utils.data.service", "ember.core.utils.data.service"),
+        ("src.ember.core.utils.eval", "ember.core.utils.eval"),
+        (
+            "src.ember.core.registry.model.base.schemas",
+            "ember.core.registry.model.base.schemas",
+        ),
+    ]
+
+    for src_path, target_path in core_deps:
+        try:
+            module = importlib.import_module(src_path)
+            sys.modules[target_path] = module
+            print(f"Mapped dependency {src_path} -> {target_path}")
+        except ImportError as e:
+            print(f"Warning: Could not import API dependency {src_path}: {e}")
+
+    # Now import the main API module
+    module_path = "src.ember.api"
+    target_path = "ember.api"
+    api_module_loaded = False
+
     try:
         module = importlib.import_module(module_path)
         sys.modules[target_path] = module
+        api_module_loaded = True
         print(f"Mapped {module_path} -> {target_path}")
+
+        # Import individual submodules in a specific order to handle dependencies
+        # Order matters here - modules with fewer dependencies first
+        api_submodules = [
+            "types",  # Basic types, no dependencies
+            "xcs",  # XCS functionality
+            "models",  # Model registry access
+            "non",  # Network of Networks
+            "operator",  # Basic operator interface
+            "operators",  # Extended operator functionality
+            "data",  # Data functionality (depends on core utils)
+            "eval",  # Evaluation (depends on most other modules)
+        ]
+
+        for submodule in api_submodules:
+            try:
+                sub_path = f"{module_path}.{submodule}"
+                sub_target = f"{target_path}.{submodule}"
+                sub_module = importlib.import_module(sub_path)
+                sys.modules[sub_target] = sub_module
+
+                # Also import any exposed classes/functions
+                # This makes from X import Y style imports work properly
+                if hasattr(module, submodule):
+                    # Get the submodule from the main module
+                    parent_submodule = getattr(module, submodule)
+
+                    # Make it available in the sys.modules map
+                    sys.modules[sub_target] = parent_submodule
+
+                print(f"  Mapped {sub_path} -> {sub_target}")
+            except ImportError as e:
+                print(f"  Warning: Could not import API submodule {sub_path}: {e}")
+
+        return api_module_loaded
     except ImportError as e:
-        print(f"Warning: Could not import {module_path}: {e}")
+        print(f"Warning: Could not import API module {module_path}: {e}")
+        return False
+
+
+# Run the API module setup
+api_module_loaded = setup_api_modules()
 
 # Setup aliases for specific failing modules
 try:
@@ -183,12 +306,21 @@ try:
     from src.ember.core.utils.data import (
         initialization,
         loader_factory,
-        metadata_registry,
+        # metadata_registry is deprecated, use registry instead
         registry,
     )
 
+    # Create a stub for backward compatibility
+    class MetadataRegistryStub:
+        """Stub for the deprecated metadata_registry module."""
+
+        # Add any symbols needed by tests
+        DatasetRegistry = registry.DatasetRegistry
+        DATASET_REGISTRY = registry.DATASET_REGISTRY
+
+    # Set up module references
     sys.modules["ember.core.utils.data.registry"] = registry
-    sys.modules["ember.core.utils.data.metadata_registry"] = metadata_registry
+    sys.modules["ember.core.utils.data.metadata_registry"] = MetadataRegistryStub()
     sys.modules["ember.core.utils.data.initialization"] = initialization
     sys.modules["ember.core.utils.data.loader_factory"] = loader_factory
 
@@ -216,13 +348,19 @@ try:
 
     # Import datasets registry
     from src.ember.core.utils.data.datasets_registry import (
+        aime,
+        codeforces,
         commonsense_qa,
+        gpqa,
         halueval,
         mmlu,
         short_answer,
         truthful_qa,
     )
 
+    sys.modules["ember.core.utils.data.datasets_registry.aime"] = aime
+    sys.modules["ember.core.utils.data.datasets_registry.codeforces"] = codeforces
+    sys.modules["ember.core.utils.data.datasets_registry.gpqa"] = gpqa
     sys.modules["ember.core.utils.data.datasets_registry.truthful_qa"] = truthful_qa
     sys.modules["ember.core.utils.data.datasets_registry.mmlu"] = mmlu
     sys.modules[
@@ -258,6 +396,96 @@ def pytest_configure(config):
     )
 
 
+@pytest.hookimpl(tryfirst=True)
+def pytest_collection_modifyitems(config, items):
+    """Modify test items based on command line options."""
+    run_all = config.getoption("--run-all-tests")
+    run_api = config.getoption("--run-api-tests")
+    run_perf = config.getoption("--run-perf-tests")
+
+    for item in items:
+        skip_marks = [mark for mark in item.own_markers if mark.name == "skip"]
+        skipif_marks = [mark for mark in item.own_markers if mark.name == "skipif"]
+
+        # Special handling for different types of tests
+        if any(mark.name == "performance" for mark in item.own_markers):
+            # Only remove skip marks for performance tests if --run-perf-tests or --run-all-tests is specified
+            if run_all or run_perf:
+                for mark in skip_marks:
+                    item.own_markers.remove(mark)
+        elif any("API_KEY" in str(mark.args) for mark in skipif_marks):
+            # Only remove skip marks for API tests if --run-api-tests is specified
+            if run_api:
+                for mark in skip_marks:
+                    item.own_markers.remove(mark)
+        elif run_all:
+            # Remove skip marks for all other tests if --run-all-tests is specified
+            for mark in skip_marks:
+                item.own_markers.remove(mark)
+
+
+# Setup specific API symbols that are imported directly by tests
+def setup_api_symbols():
+    """Setup common symbols from API modules that are directly imported by tests.
+
+    This makes direct imports like `from ember.api import DatasetBuilder` work correctly.
+    """
+    if not api_module_loaded:
+        print("Warning: API module not loaded, cannot set up API symbols")
+        return
+
+    # Import API module
+    import src.ember.api as api_module
+
+    # Get all the symbols defined in the API's __all__
+    all_symbols = getattr(api_module, "__all__", [])
+
+    # Map symbols from the API module to the ember.api namespace
+    for symbol_name in all_symbols:
+        if hasattr(api_module, symbol_name):
+            symbol = getattr(api_module, symbol_name)
+            # Add a reference directly to the ember.api module in sys.modules
+            setattr(sys.modules["ember.api"], symbol_name, symbol)
+            print(f"  Registered API symbol: {symbol_name}")
+
+    # Some symbols require special handling due to their import locations
+    # These are the problematic ones in the tests
+    special_symbols = {
+        # Classes from data.py
+        "DatasetBuilder": ("src.ember.api.data", "DatasetBuilder"),
+        "Dataset": ("src.ember.api.data", "Dataset"),
+        "DatasetEntry": ("src.ember.core.utils.data.base.models", "DatasetEntry"),
+        "TaskType": ("src.ember.core.utils.data.base.models", "TaskType"),
+        # Functions/classes from eval.py
+        "Evaluator": ("src.ember.api.eval", "Evaluator"),
+        "EvaluationPipeline": ("src.ember.api.eval", "EvaluationPipeline"),
+    }
+
+    # Import and register each special symbol
+    for symbol_name, (module_path, class_name) in special_symbols.items():
+        try:
+            # Import the module
+            module = importlib.import_module(module_path)
+
+            # Get the symbol from the module
+            if hasattr(module, class_name):
+                symbol = getattr(module, class_name)
+
+                # Register in the API module
+                setattr(sys.modules["ember.api"], symbol_name, symbol)
+                print(f"  Registered special API symbol: {symbol_name}")
+        except (ImportError, AttributeError) as e:
+            print(f"  Warning: Could not register special symbol {symbol_name}: {e}")
+
+
+# Run the API symbols setup if the API module was loaded
+if api_module_loaded:
+    setup_api_symbols()
+
+# We no longer need to skip test collection since we've fixed the imports
+# The pytest_ignore_collect function has been removed
+
+
 def pytest_addoption(parser):
     """Add custom command line options to pytest."""
     parser.addoption(
@@ -265,6 +493,18 @@ def pytest_addoption(parser):
         action="store_true",
         default=False,
         help="Run performance tests that are skipped by default",
+    )
+    parser.addoption(
+        "--run-all-tests",
+        action="store_true",
+        default=False,
+        help="Run all tests including skipped tests (except those requiring API keys)",
+    )
+    parser.addoption(
+        "--run-api-tests",
+        action="store_true",
+        default=False,
+        help="Run tests that require API keys and external services",
     )
 
 

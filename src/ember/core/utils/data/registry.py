@@ -21,7 +21,7 @@ class RegisteredDataset:
 
     name: str
     dataset_cls: Optional[Type[Any]] = None
-    info: Optional[DatasetInfo] = None  
+    info: Optional[DatasetInfo] = None
     prepper: Optional[IDatasetPrepper] = None
 
 
@@ -276,7 +276,7 @@ def initialize_registry() -> None:
         task_type=TaskType.SHORT_ANSWER,
         prepper_class=short_answer.ShortAnswerPrepper,
     )
-    
+
     # Register new datasets
     DATASET_REGISTRY.register_metadata(
         name="aime",
@@ -285,7 +285,7 @@ def initialize_registry() -> None:
         task_type=TaskType.SHORT_ANSWER,
         prepper_class=aime.AIMEPrepper,
     )
-    
+
     DATASET_REGISTRY.register_metadata(
         name="gpqa",
         description="Graduate-level PhD science questions (Diamond subset)",
@@ -293,7 +293,7 @@ def initialize_registry() -> None:
         task_type=TaskType.MULTIPLE_CHOICE,
         prepper_class=gpqa.GPQAPrepper,
     )
-    
+
     DATASET_REGISTRY.register_metadata(
         name="codeforces",
         description="Competitive programming problems",

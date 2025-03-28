@@ -640,8 +640,8 @@ def apply_structural_jit_parallel(operator_class):
 
 
 @pytest.mark.skipif(
-    "not config.getoption('--run-perf-tests')",
-    reason="Performance tests are disabled by default. Run with --run-perf-tests flag.",
+    "not config.getoption('--run-perf-tests') and not config.getoption('--run-all-tests')",
+    reason="Performance tests are disabled by default. Run with --run-perf-tests or --run-all-tests flag.",
 )
 class TestOperatorPerformance:
     """Comprehensive performance tests for operators with different JIT implementations."""

@@ -245,12 +245,14 @@ class OperatorStructureNode:
         node_id: Unique identifier for this node
         attribute_path: Dot-notation path to this operator from the root
         parent_id: ID of the parent node, or None for the root
+        metadata: Dictionary for storing node-specific metadata
     """
 
     operator: Operator
     node_id: str
     attribute_path: str
     parent_id: Optional[str] = None
+    metadata: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -366,9 +368,23 @@ def _analyze_operator_structure(operator: Operator) -> OperatorStructureGraph:
         node_id = None
         if isinstance(obj, Operator):
             node_id = f"node_{obj_id}"
-            graph.nodes[node_id] = OperatorStructureNode(
+            # Create the node
+            node = OperatorStructureNode(
                 operator=obj, node_id=node_id, attribute_path=path, parent_id=parent_id
             )
+
+            # Capture type information from specification if available
+            if hasattr(obj, "specification"):
+                spec = obj.specification
+                # Capture input model type for dict-to-model conversion
+                if hasattr(spec, "input_model") and spec.input_model:
+                    node.metadata["input_model"] = spec.input_model
+
+                # Capture output model type for model-to-dict conversion
+                if hasattr(spec, "structured_output") and spec.structured_output:
+                    node.metadata["structured_output"] = spec.structured_output
+
+            graph.nodes[node_id] = node
 
             # First node becomes root
             if graph.root_id is None:
@@ -453,9 +469,36 @@ def _build_xcs_graph_from_structure(
     """
     graph = XCSGraph()
 
-    # Add all operators as nodes
+    # Add all operators as nodes with their metadata
     for node_id, node in structure.nodes.items():
-        graph.add_node(operator=node.operator, node_id=node_id)
+        # Extract operator object
+        operator_obj = node.operator
+
+        # Add the node to the graph
+        xcs_node = graph.add_node(operator=operator_obj, node_id=node_id)
+
+        # Determine the actual metadata target
+        metadata_target = None
+        if not isinstance(xcs_node, str) and hasattr(xcs_node, "metadata"):
+            metadata_target = xcs_node
+        elif (
+            isinstance(xcs_node, str)
+            and node_id in graph.nodes
+            and hasattr(graph.nodes[node_id], "metadata")
+        ):
+            metadata_target = graph.nodes[node_id]
+
+        # Apply metadata if we have a valid target
+        if metadata_target is not None:
+            # Capture input_model from operator's specification
+            if hasattr(operator_obj, "specification"):
+                spec = operator_obj.specification
+                if hasattr(spec, "input_model") and spec.input_model:
+                    metadata_target.metadata["input_model"] = spec.input_model
+
+            # Preserve any existing metadata
+            if isinstance(node.metadata, dict):
+                metadata_target.metadata.update(node.metadata)
 
     # Connect parent-child relationships
     for node_id, node in structure.nodes.items():
@@ -556,8 +599,9 @@ def _extract_result(
 ) -> Dict[str, Any]:
     """Extract the appropriate result from graph execution output.
 
-    First tries explicit metadata, then falls back to heuristics if needed.
-    The explicit output_node_id metadata is preferred, matching the enhanced JIT system.
+    Uses a deterministic prioritized approach to identify the output value.
+    Applies explicit metadata markers first, falling back to structural analysis
+    when explicit markers aren't available.
 
     Args:
         graph: The executed graph
@@ -567,56 +611,60 @@ def _extract_result(
     Returns:
         The extracted result
     """
-    # Strategy 0: Explicit output node ID (new enhanced approach)
+    # Priority 1: Explicit metadata markers
     if "output_node_id" in graph.metadata:
-        output_node_id = graph.metadata["output_node_id"]
-        if output_node_id in results:
-            logger.debug(f"Using explicit output_node_id: {output_node_id}")
-            return results[output_node_id]
+        node_id = graph.metadata["output_node_id"]
+        if node_id in results:
+            logger.debug(f"Using explicit output_node_id: {node_id}")
+            return results[node_id]
+        logger.warning(f"Output node '{node_id}' not found in results")
 
-        logger.warning(
-            f"Output node '{output_node_id}' not found in results. "
-            f"Available nodes: {list(results.keys())}"
-        )
+    if "original_operator" in results:
+        logger.debug("Using original_operator node")
+        return results["original_operator"]
 
-    # Strategy 1: Single node graph
+    if "output_node" in graph.metadata and graph.metadata["output_node"] in results:
+        node_id = graph.metadata["output_node"]
+        logger.debug(f"Using legacy output_node: {node_id}")
+        return results[node_id]
+
+    # Priority 2: Structural inference
+    # Simple case: single node graph
     if len(graph.nodes) == 1:
         node_id = next(iter(graph.nodes.keys()))
         if node_id in results:
             logger.debug(f"Using only node: {node_id}")
             return results[node_id]
 
-    # Strategy 2: Single leaf node
+    # Get leaf nodes (terminal outputs)
     leaf_nodes = [
         node_id for node_id, node in graph.nodes.items() if not node.outbound_edges
     ]
+
+    # Single leaf node is unambiguous
     if len(leaf_nodes) == 1 and leaf_nodes[0] in results:
         logger.debug(f"Using single leaf node: {leaf_nodes[0]}")
         return results[leaf_nodes[0]]
 
-    # Strategy 3: Original operator node
-    if "original_operator" in results:
-        logger.debug("Using original_operator node")
-        return results["original_operator"]
-
-    # Strategy 4: Legacy output node from metadata
-    if "output_node" in graph.metadata and graph.metadata["output_node"] in results:
-        logger.debug(f"Using legacy output_node: {graph.metadata['output_node']}")
-        return results[graph.metadata["output_node"]]
-
-    # Strategy 5: Identical leaf node results
+    # Multiple identical leaf results
     if leaf_nodes:
-        leaf_results = [results.get(node) for node in leaf_nodes if node in results]
-        if leaf_results and all(r == leaf_results[0] for r in leaf_results):
-            logger.debug(f"Using identical result from {len(leaf_nodes)} leaf nodes")
-            return leaf_results[0]
+        available_results = [
+            (node, results[node]) for node in leaf_nodes if node in results
+        ]
+        if available_results and all(
+            r[1] == available_results[0][1] for r in available_results
+        ):
+            logger.debug(
+                f"Using identical result from {len(available_results)} leaf nodes"
+            )
+            return available_results[0][1]
 
-    # Strategy 6: Cached original result
+    # Priority 3: Recovery mechanisms
     if hasattr(graph, "original_result") and graph.original_result is not None:
         logger.debug("Using cached original result")
         return graph.original_result
 
-    # Strategy 7: Return all results
+    # Last resort: return all results
     logger.debug("Could not determine specific output node, returning all results")
     return results
 

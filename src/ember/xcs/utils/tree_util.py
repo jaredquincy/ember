@@ -92,7 +92,51 @@ _PytreeRegistryType = Dict[
     Type[T],
     Tuple[FlattenFn[T, L, AuxType], UnflattenFn[T, L, AuxType]],
 ]
+# Initialize the registry
 _pytree_registry: _PytreeRegistryType = {}
+
+
+# Forward import for EmberModel
+from ember.core.types.ember_model import EmberModel
+
+
+# Functions for handling EmberModel in tree operations
+def _flatten_ember_model(model: EmberModel) -> Tuple[List[object], AuxType]:
+    """Flatten an EmberModel instance into its dictionary and type information.
+
+    Args:
+        model: The EmberModel instance to flatten
+
+    Returns:
+        A tuple containing:
+          - A single-element list with the model's dictionary representation
+          - Auxiliary data with the model's class for reconstruction
+    """
+    # Extract the model's data as a dictionary
+    model_dict = model.to_dict()
+    # Store the concrete model class for reconstruction
+    return [model_dict], (type(model), None)
+
+
+def _unflatten_ember_model(aux: AuxType, children: List[object]) -> EmberModel:
+    """Reconstruct an EmberModel from its dictionary representation.
+
+    Args:
+        aux: Auxiliary data containing the model class
+        children: List containing the model's dictionary representation
+
+    Returns:
+        Reconstructed EmberModel instance
+    """
+    model_cls, _ = aux
+    model_dict = children[0]
+
+    # Use from_dict to properly convert back to the correct EmberModel type
+    if hasattr(model_cls, "from_dict") and callable(getattr(model_cls, "from_dict")):
+        return model_cls.from_dict(model_dict)
+
+    # Fallback for any subclass that might not have proper conversion
+    return model_cls(**model_dict)
 
 
 def register_tree(
@@ -432,3 +476,11 @@ def tree_unflatten(*, aux: AuxType, children: List[L]) -> object:
             f"Unregistered type {tree_type.__name__} expected a single leaf, got {len(children)}."
         )
     return children[0]
+
+
+# Register EmberModel with the tree utilities system after all functions are defined
+register_tree(
+    cls=EmberModel,
+    flatten_func=_flatten_ember_model,
+    unflatten_func=_unflatten_ember_model,
+)

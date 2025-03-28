@@ -71,10 +71,8 @@ from ember.api import (
 )
 
 # Import necessary components for initialization
-from ember.core.app_context import EmberAppContext, EmberContext, create_ember_app
-from ember.core.config.manager import create_config_manager, ConfigManager
-from ember.core.registry.model.base.registry.model_registry import ModelRegistry
-from ember.core.utils.logging import configure_logging, set_component_level
+# NOTE: These imports are moved to their usage points to avoid circular imports
+# The components will be imported when needed in functions like initialize_ember and init
 
 # Version detection
 try:
@@ -98,7 +96,7 @@ def initialize_ember(
     env_prefix: str = "EMBER_",
     initialize_context: bool = True,
     verbose_logging: bool = False,
-) -> Union[ModelRegistry, EmberAppContext]:
+) -> Union["ModelRegistry", "EmberAppContext"]:
     """Initialize the Ember framework with a single, unified call.
 
     This function provides a high-level entry point for initializing all Ember
@@ -146,6 +144,10 @@ def initialize_ember(
         registry = initialize_ember(initialize_context=False)
         model = registry.get_model("openai:gpt-4")
     """
+    # Import here to avoid circular imports
+    from ember.core.utils.logging import configure_logging
+    from ember.core.config.manager import create_config_manager
+
     # 0. Configure logging first
     configure_logging(verbose=verbose_logging)
 
@@ -166,6 +168,13 @@ def initialize_ember(
 
     # 4. Initialize application context if requested
     if initialize_context:
+        # Import here to avoid circular imports
+        from ember.core.app_context import (
+            EmberAppContext,
+            EmberContext,
+            create_ember_app,
+        )
+
         app_context = create_ember_app(config_path=config_path, verbose=verbose_logging)
         # Set the unified ember context as global
         EmberContext.initialize(app_context=app_context)

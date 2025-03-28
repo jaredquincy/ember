@@ -49,16 +49,16 @@ class Model(BaseModel):
     Attributes:
         id: Unique identifier for the model
         name: Human-readable name of the model
-        provider: Provider name
+        provider: Provider name (optional - inferred from parent provider if missing)
         cost_input: Cost per 1000 input tokens
         cost_output: Cost per 1000 output tokens
         rate_limit: Optional rate limiting configuration
     """
 
-    # Required fields
+    # Required fields with flexible validation for backward compatibility
     id: str
     name: str
-    provider: str
+    provider: Optional[str] = None  # Can be inferred from parent provider
 
     # Optional fields with defaults
     cost_input: float = 0.0

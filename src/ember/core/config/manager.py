@@ -34,7 +34,7 @@ class ConfigManager:
         self._lock = RLock()
         self._logger = logger or logging.getLogger(self.__class__.__name__)
         self._config_path = config_path
-        self._config = self.load()
+        self._config = None  # Will be loaded on first access or explicit load() call
 
     def load(self) -> EmberConfig:
         """
@@ -69,12 +69,14 @@ class ConfigManager:
 
     def get_config(self) -> EmberConfig:
         """
-        Get the current configuration.
+        Get the current configuration, loading if needed.
 
         Returns:
             Current EmberConfig instance
         """
         with self._lock:
+            if self._config is None:
+                self._config = self.load()
             return self._config
 
     def set_provider_api_key(self, provider_name: str, api_key: str) -> None:
@@ -86,6 +88,10 @@ class ConfigManager:
             api_key: API key to set
         """
         with self._lock:
+            # Ensure config is loaded
+            if self._config is None:
+                self._config = self.load()
+
             if provider_name not in self._config.registry.providers:
                 self._config.registry.providers[provider_name] = {}
 
@@ -114,6 +120,10 @@ class ConfigManager:
             Configuration value or default
         """
         with self._lock:
+            # Ensure config is loaded
+            if self._config is None:
+                self._config = self.load()
+
             try:
                 if hasattr(self._config, section):
                     section_obj = getattr(self._config, section)

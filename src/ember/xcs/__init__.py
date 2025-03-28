@@ -166,6 +166,7 @@ try:
     spec = importlib.util.find_spec("ember.xcs.engine.xcs_engine")
     if spec is not None:
         from .engine.execution_options import ExecutionOptions as _ExecutionOptions
+        from .engine.execution_options import execution_options
         from .engine.xcs_engine import (
             IScheduler,
             TopologicalScheduler,
@@ -815,7 +816,7 @@ XCSGraph = (
     else _StubGraph
 )
 
-# Exported symbols for __all__
+# Base exported symbols
 __all__ = [
     "xcs",
     "autograph",
@@ -838,6 +839,10 @@ __all__ = [
     "ExecutionResult",
     "utils",
 ]
+
+# Conditionally add execution_options if available
+if "engine" in import_results and import_results["engine"] is True:
+    __all__.append("execution_options")
 
 # Export version information if available
 try:
