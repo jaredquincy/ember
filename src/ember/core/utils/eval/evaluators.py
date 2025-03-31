@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 import subprocess
-from typing import Any, Callable, Generic, Optional, TypeVar
+from typing import Any, List, Callable, Generic, Optional, TypeVar
 
 from .base_evaluator import EvaluationResult, IEvaluator
 from .extractors import RegexExtractor
 
 from diversity import compression_ratio
 import Levenshtein
+import numpy as np
+from ember.core.utils.embedding_utils import EmbeddingModel
 
 T_out = TypeVar("T_out")
 T_truth = TypeVar("T_truth")
@@ -217,14 +219,14 @@ class CosineSimilarityScoringEvaluator(IEvaluator[List[str], None]):
 
         # example I was thinking about:
         letter_sum = sum(len(response) for response in system_output)
-        ratio = compression_ratio(system_output) * min(1, len(system_output)/5) * min(1, letter_sum/100)
+        ratio = 1/compression_ratio(system_output, algorithm="gzip") * min(1, len(system_output)/5) * min(1, letter_sum/100)
 
         return EvaluationResult(is_correct=True, 
                                 score=ratio, 
                                 metadata = {'responses': system_output})
 
 
-class CompressionRatioDiversityEvaluator(IEvaluator[List[str], None]):
+class DiversityCompressionEvaluator(IEvaluator[List[str], None]):
     """
     Evaluator to test ensemble outputs -> score them (float)
     """
@@ -235,29 +237,25 @@ class CompressionRatioDiversityEvaluator(IEvaluator[List[str], None]):
         if system_output is None or len(system_output) == 0:
             return EvaluationResult(is_correct=False, score=-1)
 
-        # example I was thinking about:
+        # current compression ratio formula - scaled by min num of words (5 words) + min num of chars (min 100)
         letter_sum = sum(len(response) for response in system_output)
-        ratio = compression_ratio(system_output) * min(1, len(system_output)/5) * min(1, letter_sum/100)
+        ratio = 1/compression_ratio(system_output) * min(1, len(system_output)/5) * min(1, letter_sum/100)
+        return EvaluationResult(is_correct=True,score=ratio,metadata = {'responses': system_output})    
 
-        return EvaluationResult(is_correct=True, 
-                                score=ratio, 
-                                metadata = {'responses': system_output})
-    
 
-class EditDistanceScoringEvaluator:
+class DiversityEditDistanceEvaluator:
 
-    def evaluate(
-            self, 
-            system_output: List[str], 
-            **kwargs) -> EvaluationResult:
+    def evaluate(self, system_output: List[str], **kwargs) -> EvaluationResult:
         if system_output is None or len(system_output) == 0:
             return EvaluationResult(is_correct=False, score=-1, metadata={})
 
         diversity_score = self.compute_distance(system_output)
 
-        return EvaluationResult(is_correct=True, 
-                                score=diversity_score, 
-                                metadata = {'responses': system_output})
+        return EvaluationResult(
+            is_correct=True, 
+            score=diversity_score,
+            metadata={'responses': system_output}
+        )
 
     def compute_distance(self, outputs: List[str]) -> float:
         n = len(outputs)
@@ -276,6 +274,37 @@ class EditDistanceScoringEvaluator:
                 pairs += 1
         
         return total_distance / pairs if pairs > 0 else 0.0
+
+class DiversityNoveltyEvaluator:
+    
+    def evaluate(self, model: EmbeddingModel, system_output: List[str], **kwargs) -> EvaluationResult:
+        if not system_output or len(system_output) == 0:
+            return EvaluationResult(is_correct=False, score=-1, metadata={})
+
+        novelty_scores = [self.compute_novelty(model, r, system_output[:i]) for i, r in enumerate(system_output)]
+
+        avg_novelty = sum(novelty_scores) / len(novelty_scores) if novelty_scores else 0.0
+
+        return EvaluationResult(
+            is_correct=True,
+            score=avg_novelty,
+            metadata={'responses': system_output, 'novelty_scores': novelty_scores}
+        )
+
+    def compute_novelty(self, model: EmbeddingModel, response: str, prior_responses: List[str]) -> float:
+        if not prior_responses:
+            return 1.0
+
+        new_embedding = model.embed_text(response)
+        prior_embeddings = [model.embed_text(r) for r in prior_responses]
+
+        similarities = [
+            np.dot(new_embedding, prior_embedding) /
+            (np.linalg.norm(new_embedding) * np.linalg.norm(prior_embedding))
+            for prior_embedding in prior_embeddings
+        ]
+
+        return 1 - max(similarities)
 
 
 class MultipleChoiceEvaluator(IEvaluator[str, str]):

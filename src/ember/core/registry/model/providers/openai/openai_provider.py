@@ -333,6 +333,7 @@ class OpenAIModel(BaseProviderModel):
             kwargs.pop("temperature")
         return kwargs
     
+    # TODO: Fix embedding model structure
     def _is_embedding_model(self, model_name: str) -> bool:
         return model_name.startswith("text-embedding-")
 

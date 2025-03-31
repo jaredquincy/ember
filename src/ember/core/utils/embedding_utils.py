@@ -4,6 +4,9 @@ import math
 from abc import ABC, abstractmethod
 from typing import List, Protocol
 
+# TODO: Fix embedding model structure
+from ember.core.registry.model.base.services.model_service import ModelService
+
 ################################################################
 # 1) Embedding Model Interfaces & Implementations
 ################################################################
@@ -56,6 +59,29 @@ class MockEmbeddingModel:
             return []
         return [ord(ch) / 256.0 for ch in text]
 
+# TODO: Fix embedding model structure
+class Text_Embedding_Ada_002_Model:
+    """Interface for embedding models.
+
+    This protocol defines the minimal interface required to compute a text
+    embedding. Implementations may use local models, external APIs, or custom
+    neural networks.
+
+    Methods:
+        embed_text: Compute the embedding for a given text.
+    """
+
+    def embed_text(self, llm: ModelService, text: str) -> List[float]:
+        """Computes the embedding vector for the provided text.
+
+        Args:
+            text (str): The text to be embedded.
+
+        Returns:
+            List[float]: A list of floats representing the embedding vector.
+        """
+        response = llm(model_id="openai:text-embedding-ada-002", prompt=text)
+        return response.embedding
 
 class OpenAITextEmbedding3(Protocol):
     """Interface for embedding models.
