@@ -1,6 +1,5 @@
 """Configure pytest environment for unit tests."""
 
-import importlib
 import logging
 import sys
 from pathlib import Path
@@ -64,10 +63,8 @@ from ember.core.registry.model.base.schemas.chat_schemas import (
     ChatRequest,
     ChatResponse,
 )
-from ember.core.registry.model.base.schemas.cost import ModelCost, RateLimit
 
 # Register test providers for unit and integration tests
-from ember.core.registry.model.base.schemas.model_info import ModelInfo, ProviderInfo
 from ember.core.registry.model.providers.base_provider import BaseProviderModel
 from ember.plugin_system import registered_providers
 

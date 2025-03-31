@@ -17,7 +17,7 @@ Note: If your env variables are not set, you can also edit this file to add your
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import List
 
 from prettytable import PrettyTable
 

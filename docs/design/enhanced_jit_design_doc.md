@@ -10,7 +10,7 @@ This document describes the design for an enhanced JIT (Just-In-Time) compilatio
 > 2. **jit** - A decorator that traces execution and automatically builds graphs from observed behavior
 > 3. **structural_jit** - An advanced decorator that analyzes operator composition without execution tracing
 >
-> Together, these provide a JAX-like experience where operators can be composed naturally with automatic parallelization. The system handles most common use cases, but some advanced features (like complete transforms integration and advanced optimization) are still being developed. See `src/ember/xcs/tracer/PROPOSED_IMPROVEMENTS.md` for planned enhancements.
+> Together, these provide a JAX-like experience where operators can be composed naturally with automatic parallelization. The system handles most common use cases, with ongoing development of advanced features like complete transforms integration and advanced optimization.
 
 ## Goals
 

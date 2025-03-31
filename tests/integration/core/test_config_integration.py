@@ -6,13 +6,11 @@ with the model registry and other components.
 
 import os
 import tempfile
-from pathlib import Path
 
 import pytest
 import yaml
 
-from ember.core.app_context import create_ember_app, get_app_context
-from ember.core.config.manager import create_config_manager
+from ember.core.app_context import create_ember_app
 from ember.core.registry.model.initialization import initialize_registry
 
 
@@ -20,47 +18,39 @@ from ember.core.registry.model.initialization import initialize_registry
 def test_config():
     """Create a temporary test configuration file."""
     config = {
-        "model_registry": {
+        "registry": {
             "auto_discover": False,  # Disable to prevent API calls
             "auto_register": True,
             "providers": {
                 "openai": {
                     "enabled": True,
                     "api_keys": {"default": {"key": "test-openai-key"}},
-                    "models": [
-                        {
+                    "models": {
+                        "gpt-4": {
                             "id": "gpt-4",
                             "name": "GPT-4",
                             "provider": "openai",
-                            "cost": {
-                                "input_cost_per_thousand": 5.0,
-                                "output_cost_per_thousand": 15.0,
-                            },
-                            "rate_limit": {
-                                "tokens_per_minute": 100000,
-                                "requests_per_minute": 500,
-                            },
+                            "cost_input": 5.0,
+                            "cost_output": 15.0,
+                            "tokens_per_minute": 100000,
+                            "requests_per_minute": 500,
                         }
-                    ],
+                    },
                 },
                 "anthropic": {
                     "enabled": True,
                     "api_keys": {"default": {"key": "test-anthropic-key"}},
-                    "models": [
-                        {
+                    "models": {
+                        "claude-3": {
                             "id": "claude-3",
                             "name": "Claude 3",
                             "provider": "anthropic",
-                            "cost": {
-                                "input_cost_per_thousand": 15.0,
-                                "output_cost_per_thousand": 75.0,
-                            },
-                            "rate_limit": {
-                                "tokens_per_minute": 50000,
-                                "requests_per_minute": 100,
-                            },
+                            "cost_input": 15.0,
+                            "cost_output": 75.0,
+                            "tokens_per_minute": 50000,
+                            "requests_per_minute": 100,
                         }
-                    ],
+                    },
                 },
             },
         },
@@ -77,7 +67,7 @@ def test_config():
     os.unlink(config_path)
 
 
-@pytest.mark.skip(reason="Needs update for new config schema")
+# Config schema has been updated
 def test_config_model_registry_integration(test_config):
     """Test that the configuration system properly integrates with the model registry."""
     # Initialize registry from config
@@ -102,7 +92,7 @@ def test_config_model_registry_integration(test_config):
     assert anthropic_model.get_api_key() == "test-anthropic-key"
 
 
-@pytest.mark.skip(reason="Needs update for new config schema")
+# Config schema has been updated
 def test_app_context_integration(test_config, monkeypatch):
     """Test that the app context properly loads and uses the configuration."""
     # Set config path via environment
@@ -111,10 +101,10 @@ def test_app_context_integration(test_config, monkeypatch):
     # Create app context
     app = create_ember_app()
 
-    # Verify config was loaded
+    # Verify config was loaded - handle registry namespace
     config = app.config_manager.get_config()
-    assert config.model_registry.auto_discover is False
-    assert config.model_registry.auto_register is True
+    assert config.registry.auto_discover is False
+    assert config.registry.auto_register is True
 
     # Verify model registry was initialized
     model_ids = app.model_registry.list_models()
@@ -127,7 +117,7 @@ def test_app_context_integration(test_config, monkeypatch):
     assert openai_model.get_api_key() == "test-openai-key"
 
 
-@pytest.mark.skip(reason="Needs update for new config schema")
+# Config schema has been updated
 def test_environment_variable_substitution(monkeypatch):
     """Test that environment variables are properly substituted in the configuration."""
     # Set environment variables
@@ -136,20 +126,35 @@ def test_environment_variable_substitution(monkeypatch):
 
     # Create config with environment variable references
     config = {
-        "model_registry": {
+        "registry": {
             "auto_discover": False,
+            "auto_register": True,
             "providers": {
                 "openai": {
                     "enabled": True,
                     "api_keys": {"default": {"key": "${TEST_OPENAI_KEY}"}},
-                    "models": [{"id": "gpt-4", "name": "GPT-4", "provider": "openai"}],
+                    "models": {
+                        "gpt-4": {
+                            "id": "gpt-4",
+                            "name": "GPT-4",
+                            "provider": "openai",
+                            "cost_input": 5.0,
+                            "cost_output": 15.0,
+                        }
+                    },
                 },
                 "anthropic": {
                     "enabled": True,
                     "api_keys": {"default": {"key": "${TEST_ANTHROPIC_KEY}"}},
-                    "models": [
-                        {"id": "claude-3", "name": "Claude 3", "provider": "anthropic"}
-                    ],
+                    "models": {
+                        "claude-3": {
+                            "id": "claude-3",
+                            "name": "Claude 3",
+                            "provider": "anthropic",
+                            "cost_input": 15.0,
+                            "cost_output": 75.0,
+                        }
+                    },
                 },
             },
         }
@@ -160,14 +165,31 @@ def test_environment_variable_substitution(monkeypatch):
         config_path = f.name
 
     try:
-        # Initialize registry from config
-        registry = initialize_registry(config_path=config_path)
+        # Initialize registry from config with auto-register explicitly enabled
+        registry = initialize_registry(
+            config_path=config_path, auto_discover=False, force_discovery=False
+        )
 
-        # Verify environment variables were substituted
+        # Print debug info
+        print(f"Registry models: {registry.list_models()}")
+
+        # Verify the models were registered
+        model_ids = registry.list_models()
+        assert (
+            "openai:gpt-4" in model_ids
+        ), f"OpenAI model not found in registry. Models: {model_ids}"
+
+        # Verify environment variables were substituted in the model info
         openai_model = registry.get_model_info("openai:gpt-4")
+        assert openai_model is not None, "OpenAI model info is None"
+
+        # Verify API key substitution
         assert openai_model.get_api_key() == "openai-key-from-env"
 
+        # Verify Anthropic model
+        assert "anthropic:claude-3" in model_ids
         anthropic_model = registry.get_model_info("anthropic:claude-3")
+        assert anthropic_model is not None
         assert anthropic_model.get_api_key() == "anthropic-key-from-env"
     finally:
         # Clean up

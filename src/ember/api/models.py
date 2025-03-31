@@ -42,8 +42,7 @@ Examples:
     print(f"Total tokens: {stats.total_tokens}")
 """
 
-import sys
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, Optional, Union
 
 from ember.core.registry.model.base.registry.model_registry import ModelRegistry
 from ember.core.registry.model.base.schemas.chat_schemas import (
@@ -60,7 +59,6 @@ from ember.core.registry.model.base.schemas.usage import UsageStats
 # Service and provider model access
 from ember.core.registry.model.base.services.model_service import (
     ModelService,
-    create_model_service,
 )
 from ember.core.registry.model.base.services.usage_service import UsageService
 

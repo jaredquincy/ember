@@ -15,14 +15,16 @@ import logging
 import os
 import threading
 from threading import Lock
-from typing import Any, ClassVar, Dict, Optional, Type
+from typing import Any, ClassVar, Optional
 
 from ember.core.config.manager import ConfigManager, create_config_manager
 from ember.core.registry.model.base.registry.model_registry import ModelRegistry
-from ember.core.registry.model.base.services.model_service import ModelService
 from ember.core.registry.model.base.services.usage_service import UsageService
 from ember.core.registry.model.initialization import initialize_registry
 from ember.core.utils.logging import configure_logging
+
+# Re-import for patching to work correctly
+import logging
 
 
 class EmberAppContext:
@@ -99,7 +101,7 @@ def create_ember_app(
 
     # 1) Create the configuration manager
     config_manager = create_config_manager(config_path=config_path, logger=logger)
-    config_manager.load()
+    # Configuration will be loaded on first access
     logger.debug("Configuration manager initialized")
 
     # 2) Initialize API keys from environment variables

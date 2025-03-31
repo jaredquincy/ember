@@ -5,12 +5,7 @@ These tests use real Operator and ModelService implementations
 to test the integration of components within the framework.
 """
 
-import re
-from typing import Any, Callable, Dict, List, Optional, Type, Union
-
-import pytest
-
-from ember.core.registry.model.base.services.model_service import ModelService
+from typing import Any, Callable, Dict, List, Optional
 
 # Use the real model components
 from ember.core.registry.model.model_module.lm import LMModule, LMModuleConfig
@@ -260,7 +255,7 @@ class TestRealIntegration:
         modules = [
             LMModule(
                 config=LMModuleConfig(
-                    id=f"openai:gpt-3.5-turbo", temperature=0.7 + i * 0.1
+                    id="openai:gpt-3.5-turbo", temperature=0.7 + i * 0.1
                 ),
                 simulate_api=True,
             )

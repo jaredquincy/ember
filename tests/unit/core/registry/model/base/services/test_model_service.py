@@ -3,7 +3,6 @@
 Tests model retrieval and invocation using a dummy model provider.
 """
 
-import asyncio
 from typing import Any
 
 import pytest
@@ -126,7 +125,6 @@ def dummy_registry(monkeypatch: pytest.MonkeyPatch) -> ModelRegistry:
     """Fixture that returns a ModelRegistry with a dummy model registered."""
     registry = ModelRegistry()
     dummy_info = create_dummy_model_info("dummy:service")
-    from ember.core.registry.model.base.registry.factory import ModelFactory
 
     # We no longer need to patch these methods since we've properly
     # registered the DummyService provider in conftest.py

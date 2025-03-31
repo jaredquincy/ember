@@ -10,16 +10,12 @@ from typing import (
     Any,
     Dict,
     List,
-    Optional,
     Protocol,
     TypedDict,
-    Union,
     runtime_checkable,
 )
 
 from typing_extensions import NotRequired, Required
-
-from .protocols import EmberTyped, TypeInfo
 
 
 @runtime_checkable

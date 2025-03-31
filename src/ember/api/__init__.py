@@ -30,34 +30,37 @@ Examples:
 """
 
 # Import module namespaces
+import ember.api.eval as eval  # Evaluation module
 import ember.api.models as models  # Language model access
 import ember.api.non as non  # Network of Networks patterns
-
-# import ember.api.xcs as xcs  # Execution optimization
 import ember.api.operators as operators  # Operator system
+import ember.api.types as types
 
 # Make operators available as both singular and plural for backward compatibility
 operator = operators
 
-# Import types API
-import ember.api.types as types
-
-# Import direct data API components
-from ember.api.data import Dataset  # Dataset container class
-from ember.api.data import DatasetBuilder  # Builder pattern for dataset configuration
-from ember.api.data import DatasetConfig  # Configuration for dataset loading
-from ember.api.data import DatasetEntry  # Individual dataset entry
-from ember.api.data import DatasetInfo  # Dataset metadata
-from ember.api.data import TaskType  # Enum of dataset task types
-from ember.api.data import datasets  # Function to load datasets
-from ember.api.data import get_dataset_info  # Get dataset metadata
-from ember.api.data import list_available_datasets  # List available datasets
-from ember.api.data import register  # Dataset registration decorator
-
-# Import model API components
-from ember.api.models import ModelAPI  # High-level model API
-from ember.api.models import ModelBuilder  # Builder pattern for model configuration
-from ember.api.models import ModelEnum  # Type-safe model references
+# Import high-level API components
+from ember.api.data import (
+    Dataset,  # Dataset container class
+    DatasetBuilder,  # Builder pattern for dataset configuration
+    DatasetConfig,  # Configuration for dataset loading
+    DatasetEntry,  # Individual dataset entry
+    DatasetInfo,  # Dataset metadata
+    TaskType,  # Enum of dataset task types
+    datasets,  # Function to load datasets
+    get_dataset_info,  # Get dataset metadata
+    list_available_datasets,  # List available datasets
+    register,  # Dataset registration decorator
+)
+from ember.api.eval import (
+    EvaluationPipeline,  # Pipeline for batch evaluation
+    Evaluator,  # Evaluator for model outputs
+)
+from ember.api.models import (
+    ModelAPI,  # High-level model API
+    ModelBuilder,  # Builder pattern for model configuration
+    ModelEnum,  # Type-safe model references
+)
 
 # Public interface - export facades, modules, and direct API components
 __all__ = [
@@ -65,6 +68,7 @@ __all__ = [
     "models",  # Model access (models.openai.gpt4o, etc.)
     "datasets",  # Dataset access (datasets("mmlu"), etc.)
     # Module namespaces
+    "eval",  # Evaluation module
     "non",  # Network of Networks patterns
     # "xcs",  # Execution optimization
     "operators",  # Operator system (plural)
@@ -84,4 +88,7 @@ __all__ = [
     "register",  # Dataset registration decorator
     "list_available_datasets",  # List available datasets
     "get_dataset_info",  # Get dataset metadata
+    # Evaluation API components
+    "Evaluator",  # Evaluator for model outputs
+    "EvaluationPipeline",  # Pipeline for batch evaluation
 ]

@@ -20,8 +20,7 @@ To run:
 
 import logging
 import time
-from dataclasses import dataclass
-from typing import Any, ClassVar, Dict, List, Tuple, Type
+from typing import ClassVar, List, Tuple, Type
 
 # ember API imports
 from ember.api.xcs import execution_options, jit
@@ -362,7 +361,7 @@ def main() -> None:
     print(f"Total Parallel time: {total_parallel_time:.4f}s")
     print(f"Total JIT time:      {total_jit_time:.4f}s")
 
-    print(f"\nAverage per-query time:")
+    print("\nAverage per-query time:")
     print(f"  Baseline: {avg_baseline:.4f}s")
     print(f"  Parallel: {avg_parallel:.4f}s")
     print(f"  JIT:      {avg_jit:.4f}s")
@@ -380,7 +379,7 @@ def main() -> None:
     else:
         jit_vs_parallel_speedup = 0.0
 
-    print(f"\nSpeedup percentages:")
+    print("\nSpeedup percentages:")
     print(f"  Parallel vs Baseline: {parallel_speedup:.1f}%")
     print(f"  JIT vs Baseline:      {jit_speedup:.1f}%")
     print(f"  JIT vs Parallel:      {jit_vs_parallel_speedup:.1f}%")

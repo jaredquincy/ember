@@ -30,12 +30,11 @@ Example usage:
 
 from __future__ import annotations
 
-from typing import Any, Dict, Generic, List, Optional, Type, TypeVar, Union, cast
+from typing import Any, List, Optional, Type, TypeVar, cast
 
-from pydantic import BaseModel
+from ember.core.types.ember_model import EmberModel
 
 from ember.core.registry.model.model_module.lm import LMModule, LMModuleConfig
-from ember.core.registry.operator.base._module import EmberModule, ember_field
 
 # Import the actual Operator class and EmberModule
 from ember.core.registry.operator.base.operator_base import Operator
@@ -66,8 +65,8 @@ from ember.core.registry.operator.core.verifier import (
 from ember.core.registry.specification.specification import Specification
 
 # Define type variables for use in generic operators
-T_in = TypeVar("T_in")
-T_out = TypeVar("T_out")
+InputT = TypeVar("InputT")
+OutputT = TypeVar("OutputT")
 
 # Alias re-export types for backward compatibility with clients/tests
 EnsembleInputs = EnsembleOperatorInputs
@@ -110,7 +109,7 @@ class UniformEnsemble(Operator[EnsembleInputs, EnsembleOperatorOutputs]):
 
     specification: Specification = EnsembleOperator.specification
 
-    ensemble_op: EnsembleOperator = ember_field(init=False)
+    _ensemble_op: Optional[EnsembleOperator] = None
 
     def __init__(
         self,
@@ -137,14 +136,14 @@ class UniformEnsemble(Operator[EnsembleInputs, EnsembleOperatorOutputs]):
             )
             for _ in range(self.num_units)
         ]
-        # Use our helper to set the computed field.
-        self._init_field(
-            field_name="ensemble_op", value=EnsembleOperator(lm_modules=lm_modules)
-        )
+        # Create the operator directly
+        self._ensemble_op = EnsembleOperator(lm_modules=lm_modules)
 
     def forward(self, *, inputs: EnsembleInputs) -> EnsembleOperatorOutputs:
         """Delegates execution to the underlying EnsembleOperator."""
-        return self.ensemble_op.forward(inputs=inputs)
+        if self._ensemble_op is None:
+            raise ValueError("EnsembleOperator not initialized")
+        return self._ensemble_op(inputs=inputs)
 
 
 # ------------------------------------------------------------------------------
@@ -193,16 +192,16 @@ class MostCommon(Operator[MostCommonInputs, MostCommonAnswerSelectorOutputs]):
     """
 
     specification: Specification = MostCommonAnswerSelectorOperator.specification
-    most_common_op: MostCommonAnswerSelectorOperator = ember_field(init=False)
+    _most_common_op: Optional[MostCommonAnswerSelectorOperator] = None
 
     def __init__(self) -> None:
-        self._init_field(
-            field_name="most_common_op", value=MostCommonAnswerSelectorOperator()
-        )
+        self._most_common_op = MostCommonAnswerSelectorOperator()
 
     def forward(self, *, inputs: MostCommonInputs) -> MostCommonAnswerSelectorOutputs:
         """Delegates execution to the underlying MostCommonOperator."""
-        return self.most_common_op(inputs=inputs)
+        if self._most_common_op is None:
+            raise ValueError("MostCommonAnswerSelectorOperator not initialized")
+        return self._most_common_op(inputs=inputs)
 
 
 # ------------------------------------------------------------------------------
@@ -259,7 +258,7 @@ class JudgeSynthesis(Operator[JudgeSynthesisInputs, JudgeSynthesisOutputs]):
     model_name: str
     temperature: float
     max_tokens: Optional[int]
-    judge_synthesis_op: JudgeSynthesisOperator = ember_field(init=False)
+    _judge_synthesis_op: Optional[JudgeSynthesisOperator] = None
 
     def __init__(
         self,
@@ -279,14 +278,13 @@ class JudgeSynthesis(Operator[JudgeSynthesisInputs, JudgeSynthesisOutputs]):
                 max_tokens=max_tokens,
             )
         )
-        self._init_field(
-            field_name="judge_synthesis_op",
-            value=JudgeSynthesisOperator(lm_module=lm_module),
-        )
+        self._judge_synthesis_op = JudgeSynthesisOperator(lm_module=lm_module)
 
     def forward(self, *, inputs: JudgeSynthesisInputs) -> JudgeSynthesisOutputs:
         """Delegates execution to the underlying JudgeSynthesisOperator."""
-        return self.judge_synthesis_op.forward(inputs=inputs)
+        if self._judge_synthesis_op is None:
+            raise ValueError("JudgeSynthesisOperator not initialized")
+        return self._judge_synthesis_op(inputs=inputs)
 
 
 # ------------------------------------------------------------------------------
@@ -344,7 +342,7 @@ class Verifier(Operator[VerifierInputs, VerifierOutputs]):
     model_name: str
     temperature: float
     max_tokens: Optional[int]
-    verifier_op: VerifierOperator = ember_field(init=False)
+    _verifier_op: Optional[VerifierOperator] = None
 
     def __init__(
         self,
@@ -364,13 +362,13 @@ class Verifier(Operator[VerifierInputs, VerifierOutputs]):
                 max_tokens=max_tokens,
             )
         )
-        self._init_field(
-            field_name="verifier_op", value=VerifierOperator(lm_module=lm_module)
-        )
+        self._verifier_op = VerifierOperator(lm_module=lm_module)
 
     def forward(self, *, inputs: VerifierInputs) -> VerifierOutputs:
         """Delegates execution to the underlying VerifierOperator."""
-        return self.verifier_op(inputs=inputs)
+        if self._verifier_op is None:
+            raise ValueError("VerifierOperator not initialized")
+        return self._verifier_op(inputs=inputs)
 
 
 # ------------------------------------------------------------------------------
@@ -378,7 +376,7 @@ class Verifier(Operator[VerifierInputs, VerifierOutputs]):
 # ------------------------------------------------------------------------------
 
 
-class VariedEnsembleInputs(BaseModel):
+class VariedEnsembleInputs(EmberModel):
     """Typed input for the VariedEnsemble operator.
 
     Attributes:
@@ -388,7 +386,7 @@ class VariedEnsembleInputs(BaseModel):
     query: str
 
 
-class VariedEnsembleOutputs(BaseModel):
+class VariedEnsembleOutputs(EmberModel):
     """Typed output for the VariedEnsemble operator.
 
     Attributes:
@@ -399,8 +397,10 @@ class VariedEnsembleOutputs(BaseModel):
 
 
 class VariedEnsembleSpecification(Specification):
-    input_model: Type[BaseModel] = VariedEnsembleInputs
-    structured_output: Type[BaseModel] = VariedEnsembleOutputs
+    """Specification for the VariedEnsemble operator."""
+
+    input_model: Type[EmberModel] = VariedEnsembleInputs
+    structured_output: Type[EmberModel] = VariedEnsembleOutputs
 
 
 class VariedEnsemble(Operator[VariedEnsembleInputs, VariedEnsembleOutputs]):
@@ -414,20 +414,18 @@ class VariedEnsemble(Operator[VariedEnsembleInputs, VariedEnsembleOutputs]):
     specification: Specification = VariedEnsembleSpecification()
     model_configs: List[LMModuleConfig]
     lm_modules: List[LMModule]
-    varied_ensemble_op: EnsembleOperator = ember_field(init=False)
+    _varied_ensemble_op: Optional[EnsembleOperator] = None
 
     def __init__(self, *, model_configs: List[LMModuleConfig]) -> None:
         self.model_configs = model_configs
         self.lm_modules = [LMModule(config=config) for config in model_configs]
-        self._init_field(
-            field_name="varied_ensemble_op",
-            value=EnsembleOperator(lm_modules=self.lm_modules),
-        )
+        self._varied_ensemble_op = EnsembleOperator(lm_modules=self.lm_modules)
 
     def build_prompt(self, *, inputs: VariedEnsembleInputs) -> str:
         """Builds a prompt from the input model.
 
-        If a prompt_template is defined in the specification, it is used; otherwise, defaults to the query.
+        If a prompt_template is defined in the specification, it is used;
+        otherwise, defaults to the query.
         """
         if (
             hasattr(self.specification, "prompt_template")
@@ -458,7 +456,7 @@ class VariedEnsemble(Operator[VariedEnsembleInputs, VariedEnsembleOutputs]):
         return VariedEnsembleOutputs(responses=responses)
 
 
-class Sequential(Operator[T_in, T_out]):
+class Sequential(Operator[InputT, OutputT]):
     """
     Chains multiple operators together, passing outputs from one to the next.
 
@@ -484,9 +482,9 @@ class Sequential(Operator[T_in, T_out]):
     def __init__(self, *, operators: List[Operator[Any, Any]]) -> None:
         self.operators = operators
 
-    def forward(self, *, inputs: T_in) -> T_out:
+    def forward(self, *, inputs: InputT) -> OutputT:
         """Executes the operators sequentially."""
         current_input = inputs
         for op in self.operators:
             current_input = op(inputs=current_input)
-        return cast(T_out, current_input)
+        return cast(OutputT, current_input)

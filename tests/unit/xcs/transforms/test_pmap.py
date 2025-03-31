@@ -10,8 +10,7 @@ import multiprocessing
 import os
 import threading
 import time
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -101,7 +100,6 @@ class TestPMapInternals:
     def test_shard_inputs(self):
         """Test input sharding for parallel processing."""
         # Import ShardingOptions for configuring behavior
-        from ember.xcs.transforms.pmap import ShardingOptions
 
         # Case 1: Simple list input with even distribution
         inputs = {"prompts": ["a", "b", "c", "d"]}

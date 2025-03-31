@@ -2,7 +2,7 @@
 Tests for EmberModel and its protocol implementations.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
 import pytest
 

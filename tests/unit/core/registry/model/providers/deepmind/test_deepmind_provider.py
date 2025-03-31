@@ -43,8 +43,6 @@ def create_dummy_deepmind_model_info() -> ModelInfo:
 
 @pytest.fixture(autouse=True)
 def patch_genai() -> None:
-    from unittest.mock import patch
-
     import google.generativeai as genai
 
     # Patch google's generativeai directly to avoid import path issues
@@ -90,9 +88,6 @@ def test_deepmind_forward() -> None:
     """Test that GeminiModel.forward returns a valid ChatResponse."""
     # Fix the type checking issue by directly examining the response content
     import inspect
-    import sys
-
-    from ember.core.registry.model.base.schemas.chat_schemas import ChatResponse
 
     # Get the module where ChatResponse is defined
     response_module = inspect.getmodule(ChatResponse)

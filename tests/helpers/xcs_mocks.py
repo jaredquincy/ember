@@ -21,8 +21,6 @@ from __future__ import annotations
 import functools
 import logging
 import threading
-import time
-from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from typing import (
     Any,
@@ -32,7 +30,6 @@ from typing import (
     Optional,
     Protocol,
     TypeVar,
-    Union,
     runtime_checkable,
 )
 

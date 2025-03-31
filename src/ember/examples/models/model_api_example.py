@@ -17,7 +17,6 @@ Required environment variables:
 
 import logging
 import os
-from typing import Any, Dict
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -27,11 +26,9 @@ logger = logging.getLogger(__name__)
 from ember.api.models import (
     ModelCost,
     ModelInfo,
-    ModelRegistry,
     ModelService,
     RateLimit,
     UsageService,
-    create_model_service,
     initialize_registry,
 )
 

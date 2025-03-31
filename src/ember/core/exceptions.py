@@ -15,7 +15,7 @@ All exceptions follow these design principles:
 
 import inspect
 import logging
-from typing import Any, ClassVar, Dict, List, Optional, Type, TypedDict, Union
+from typing import Any, ClassVar, Dict, List, Optional, TypedDict
 
 # Error Code Ranges (reserved spaces for different modules)
 # 1000-1999: Core Framework
@@ -766,6 +766,47 @@ class DatasetNotFoundError(DataError):
         """
         message = f"Dataset '{dataset_name}' not found"
         return cls(message=message, context={"dataset_name": dataset_name})
+
+
+class GatedDatasetAuthenticationError(DataError):
+    """Raised when authentication is required for a gated dataset."""
+
+    DEFAULT_ERROR_CODE = 4005
+    DEFAULT_RECOVERY_HINT = "Authenticate with the dataset provider"
+
+    @classmethod
+    def for_huggingface_dataset(
+        cls, dataset_name: str
+    ) -> "GatedDatasetAuthenticationError":
+        """Create an exception for a gated HuggingFace dataset requiring authentication.
+
+        Args:
+            dataset_name: Name of the gated dataset
+
+        Returns:
+            A new GatedDatasetAuthenticationError with detailed guidance
+        """
+        message = (
+            f"Dataset '{dataset_name}' is a gated dataset requiring authentication. "
+            "You must authenticate with HuggingFace before accessing this dataset."
+        )
+
+        recovery_steps = (
+            "Run `huggingface-cli login` to authenticate with your HuggingFace account. "
+            "If you don't have access to this dataset, you may need to request access "
+            "from the dataset owner through the HuggingFace Hub web interface."
+        )
+
+        return cls(
+            message=message,
+            context={
+                "dataset_name": dataset_name,
+                "provider": "huggingface",
+                "auth_command": "huggingface-cli login",
+                "recovery_steps": recovery_steps,
+            },
+            recovery_hint=recovery_steps,
+        )
 
 
 # =========================================================

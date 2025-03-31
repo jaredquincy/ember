@@ -166,6 +166,7 @@ try:
     spec = importlib.util.find_spec("ember.xcs.engine.xcs_engine")
     if spec is not None:
         from .engine.execution_options import ExecutionOptions as _ExecutionOptions
+        from .engine.execution_options import execution_options
         from .engine.xcs_engine import (
             IScheduler,
             TopologicalScheduler,
@@ -266,7 +267,7 @@ except ImportError as e:
                 instance = func(*args, **kwargs)
 
                 # If the class has a __call__ method, wrap it to handle keyword arguments correctly
-                if hasattr(instance, "__call__") and callable(instance.__call__):
+                if callable(instance) and callable(instance.__call__):
                     # Store the original __call__ method
                     orig_call = instance.__call__
 
@@ -441,7 +442,6 @@ except ImportError as e:
 
 # Check if we are running in a test environment
 import os
-import sys
 
 # Better test environment detection
 in_test_env = (
@@ -816,7 +816,7 @@ XCSGraph = (
     else _StubGraph
 )
 
-# Exported symbols for __all__
+# Base exported symbols
 __all__ = [
     "xcs",
     "autograph",
@@ -839,6 +839,10 @@ __all__ = [
     "ExecutionResult",
     "utils",
 ]
+
+# Conditionally add execution_options if available
+if "engine" in import_results and import_results["engine"] is True:
+    __all__.append("execution_options")
 
 # Export version information if available
 try:

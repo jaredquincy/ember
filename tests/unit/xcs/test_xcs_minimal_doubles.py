@@ -5,7 +5,6 @@ without duplicating the entire implementation. This follows the CLAUDE.md guidel
 of "avoid overmocking" and using "minimal test doubles".
 """
 
-from typing import Any, Dict, List
 
 from tests.helpers.operator_minimal_doubles import (
     MinimalOperator,

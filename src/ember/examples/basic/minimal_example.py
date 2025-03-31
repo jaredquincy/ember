@@ -10,7 +10,7 @@ To run:
     poetry run python src/ember/examples/basic/minimal_example.py
 """
 
-from typing import Any, ClassVar, Dict, List, Optional, Type
+from typing import Any, Dict, List, Optional, Type
 
 from ember.core.registry.operator.base.operator_base import Operator
 from ember.core.registry.specification.specification import Specification

@@ -9,7 +9,6 @@ import configparser
 import os
 import sys
 import tempfile
-from pathlib import Path
 from typing import Optional
 
 import atheris
@@ -17,7 +16,7 @@ import atheris
 # Ensure Ember is in the Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
-from ember.core.config.manager import ConfigManager, create_config_manager
+from ember.core.config.manager import create_config_manager
 
 
 def fuzz_config_file(data):

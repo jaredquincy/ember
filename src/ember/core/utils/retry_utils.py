@@ -1,3 +1,16 @@
+"""
+Resilient execution facilities with configurable retry policies.
+
+This module provides a type-safe, composable framework for handling transient failures
+through configurable retry strategies. It encapsulates backoff algorithms and retry
+policies behind a clean interface, enabling resilient execution of arbitrary operations.
+
+Key components:
+- IRetryStrategy: Core abstraction for retry policy implementations
+- ExponentialBackoffStrategy: Production-ready implementation using randomized exponential backoff
+- run_with_backoff: Convenience function for common retry scenarios
+"""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -16,8 +29,12 @@ T = TypeVar("T")
 class IRetryStrategy(ABC, Generic[T]):
     """Abstract base class for retry strategies.
 
-    Implementations of this interface define how to execute a callable function
-    with retries and backoff policies.
+    Defines the core contract for retry policy implementations, enabling
+    interchangeable strategies with consistent execution semantics. Implementations
+    determine specific backoff algorithms, retry conditions, and exception handling.
+
+    This abstraction supports the Strategy pattern, allowing runtime selection of
+    different retry behaviors while maintaining a consistent interface.
     """
 
     @abstractmethod
@@ -39,16 +56,17 @@ class IRetryStrategy(ABC, Generic[T]):
 
 
 class ExponentialBackoffStrategy(IRetryStrategy[T]):
-    """Retry strategy using tenacity's exponential backoff.
+    """Retry strategy using randomized exponential backoff.
 
-    This strategy waits for a random, exponentially increasing amount of time
-    between retries, with configurable minimum and maximum wait times and a
-    maximum number of retry attempts.
+    Implements a jittered exponential backoff algorithm to mitigate the thundering
+    herd problem in distributed systems. Wait times increase exponentially between
+    retries with random variation, providing optimal retry behavior for network
+    operations and distributed services.
 
     Attributes:
-        min_wait (int): Minimum wait time (in seconds) before the first retry.
-        max_wait (int): Maximum wait time (in seconds) allowed between retries.
-        max_attempts (int): Total number of allowed retry attempts.
+        min_wait: Minimum wait time (in seconds) before the first retry.
+        max_wait: Maximum wait time (in seconds) allowed between retries.
+        max_attempts: Total number of allowed retry attempts.
     """
 
     def __init__(
@@ -58,32 +76,33 @@ class ExponentialBackoffStrategy(IRetryStrategy[T]):
 
         Args:
             min_wait: Minimum wait time in seconds before retrying.
-            max_wait: Maximum wait time in seconds for waiting between retries.
-            max_attempts: Number of retry attempts before the operation is considered failed.
+            max_wait: Maximum wait time in seconds between retries.
+            max_attempts: Number of retry attempts before failing.
         """
         self.min_wait: int = min_wait
         self.max_wait: int = max_wait
         self.max_attempts: int = max_attempts
 
     def execute(self, func: Callable[..., T], *args: Any, **kwargs: Any) -> T:
-        """Execute the given callable using exponential backoff for retries.
+        """Execute the callable with exponential backoff retries.
 
-        The function is wrapped with tenacity's retry decorator using a random
-        exponential wait time between retries and stops after a defined number
-        of attempts. Exceptions are re-raised when the retry policy is exhausted.
+        Wraps the target function with tenacity's retry decorator, configuring
+        randomized exponential backoff and maximum attempt constraints. The wrapped
+        function propagates the original function's return type for strong typing.
 
         Args:
-            func: The callable to execute.
+            func: The callable to execute with retry protection.
             *args: Positional arguments passed to the callable.
             **kwargs: Keyword arguments passed to the callable.
 
         Returns:
-            The result returned by the callable.
+            The result returned by the callable upon successful execution.
 
         Raises:
-            Exception: The last exception raised by the callable if all retries fail.
+            Exception: The last exception raised if all retries fail.
         """
 
+        # Creating a wrapped function with tenacity retry configuration
         @retry(
             wait=wait_random_exponential(min=self.min_wait, max=self.max_wait),
             stop=stop_after_attempt(self.max_attempts),
@@ -95,26 +114,41 @@ class ExponentialBackoffStrategy(IRetryStrategy[T]):
         return wrapped()
 
 
+# Singleton instance with default configuration for common use cases
 _default_strategy: ExponentialBackoffStrategy[Any] = ExponentialBackoffStrategy()
 
 
 def run_with_backoff(func: Callable[..., T], *args: Any, **kwargs: Any) -> T:
-    """Execute a callable with a default exponential backoff strategy.
+    """Execute a function with resilient retry behavior.
 
-    This convenience wrapper leverages a default ExponentialBackoffStrategy to
-    execute the provided function. It is useful for operations that may experience
-    transient failures, such as network calls.
+    Provides a simple interface for adding retry protection to any operation,
+    particularly useful for network calls, database operations, and other
+    potentially unstable external interactions.
 
     Args:
-        func: The callable to execute.
+        func: The function to execute with retry protection.
         *args: Positional arguments to pass to the function.
         **kwargs: Keyword arguments to pass to the function.
 
     Returns:
-        The result of the callable execution.
+        The result of the successful function execution.
 
     Example:
-        result = run_with_backoff(some_network_call, "hello", param=123)
+        ```python
+        # Resilient API call with automatic retry
+        response = run_with_backoff(
+            requests.get,
+            "https://api.example.com/data",
+            headers={"Authorization": "Bearer token"}
+        )
+
+        # Resilient database operation
+        results = run_with_backoff(
+            db.execute_query,
+            "SELECT * FROM users WHERE active = true",
+            timeout=30
+        )
+        ```
     """
     return _default_strategy.execute(func, *args, **kwargs)
 
@@ -122,21 +156,24 @@ def run_with_backoff(func: Callable[..., T], *args: Any, **kwargs: Any) -> T:
 if __name__ == "__main__":
 
     def flaky_function(x: int) -> int:
-        """Simulate a flaky function that randomly fails to mimic transient errors.
+        """Simulate a flaky function with random failures.
+
+        Demonstrates retry behavior by randomly failing approximately
+        half the time, simulating transient infrastructure issues.
 
         Args:
-            x: An integer input used in the computation.
+            x: An integer input for the computation.
 
         Returns:
-            The computed result, which is x multiplied by 2.
+            The computed result (x multiplied by 2).
 
         Raises:
-            RuntimeError: If a simulated transient error occurs.
+            RuntimeError: On simulated random failure.
         """
         import random
 
         if random.random() < 0.5:
-            raise RuntimeError("Simulated failure!")
+            raise RuntimeError("Simulated transient failure!")
         return x * 2
 
     print("Demo: Executing a flaky function with backoff (up to 3 attempts).")

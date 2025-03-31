@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, Generic, List, Optional, Type, TypeVar, Union
 
-from pydantic import BaseModel, model_validator
+from pydantic import model_validator
 
 from ember.core.exceptions import (
     InvalidArgumentError,

@@ -9,14 +9,11 @@ To run:
     uv run python src/ember/examples/test_xcs_implementation.py
 """
 
-import importlib.util
-import os
 
 # Import proper mock implementations instead of using ad-hoc imports
 # This approach follows best practices for testing with dependency injection
 import sys
 from pathlib import Path
-from typing import Any, Dict, List
 
 # Add project root to path if needed
 project_root = Path(__file__).parent.parent.parent.parent
@@ -26,8 +23,6 @@ if str(project_root) not in sys.path:
 import time
 
 # Now we can use the core XCS functionality
-from functools import partial
-
 # Import from our production-quality mocks
 # This provides reliable testing behavior separated from implementation details
 from tests.helpers.xcs_mocks import autograph, execute, jit, pmap, vmap

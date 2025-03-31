@@ -7,7 +7,7 @@ To run:
     uv run python src/ember/examples/data/data_api_example.py
 """
 
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 
 class DatasetEntry:

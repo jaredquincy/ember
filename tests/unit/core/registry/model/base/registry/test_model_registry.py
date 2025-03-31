@@ -3,11 +3,10 @@
 Tests model registration, retrieval, listing, and unregistration.
 """
 
-import importlib
 import logging
 import threading
-from typing import Any, Dict, List, Optional
-from unittest.mock import MagicMock, Mock, patch
+from typing import Any, List
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -20,9 +19,6 @@ from ember.core.registry.model.base.schemas.chat_schemas import (
 )
 from ember.core.registry.model.base.schemas.cost import ModelCost, RateLimit
 from ember.core.registry.model.base.schemas.model_info import ModelInfo, ProviderInfo
-from ember.core.registry.model.base.utils.model_registry_exceptions import (
-    ProviderConfigError,
-)
 from ember.core.registry.model.providers.base_provider import BaseProviderModel
 
 
@@ -138,7 +134,6 @@ def test_concurrent_registration():
     model_registry = ModelRegistry()
 
     # Monkeypatch the create_model_from_info method to avoid provider registry issues
-    from ember.core.registry.model.base.registry.factory import ModelFactory
 
     original_method = ModelFactory.create_model_from_info
     # Just return the model_info itself as the model - no actual provider needed for this test
@@ -455,7 +450,7 @@ class TestModelRegistryWithErrorHandling(ModelRegistry):
             # Normal case shouldn't be reached when testing errors
             return ["test:model"]
 
-        except EmberError as ember_error:
+        except EmberError:
             # Handle EmberError (same as original)
             return []
 

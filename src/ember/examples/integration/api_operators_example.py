@@ -7,11 +7,9 @@ API keys are not available.
 """
 
 import logging
-from typing import ClassVar, List, Optional
+from typing import ClassVar, List
 
 from ember.api.models import (
-    ModelAPI,
-    ModelBuilder,
     ModelEnum,
     get_model_service,
     get_registry,

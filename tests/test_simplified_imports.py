@@ -5,7 +5,6 @@ This module verifies that the simplified import patterns work as expected.
 """
 
 import unittest
-from typing import Any, Dict
 
 # Test the simplified imports directly
 try:

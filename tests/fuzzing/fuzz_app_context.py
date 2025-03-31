@@ -8,11 +8,8 @@ edge cases or threading issues.
 
 import os
 import sys
-import tempfile
 import threading
-import time
-from typing import Any, Dict, List, Optional
-from unittest.mock import MagicMock, patch
+from typing import Optional
 
 import atheris
 

@@ -6,7 +6,6 @@ and that forced tracing bypasses caching, causing the operator's forward method 
 
 from typing import Any, Dict, Type
 
-import pytest
 from pydantic import BaseModel
 
 from ember.xcs.tracer.tracer_decorator import jit

@@ -3,6 +3,7 @@ from contextlib import contextmanager
 
 from ._context_types import TraceContextData
 from .autograph import AutoGraphBuilder
+from .unified_jit import jit
 from .xcs_tracing import TracerContext, TraceRecord
 
 
@@ -26,10 +27,18 @@ def autograph(*args, **kwargs):
         pass
 
 
+# Expose individual JIT implementations for backwards compatibility
+from .structural_jit import disable_structural_jit, structural_jit
+from .tracer_decorator import jit as trace_jit
+
 __all__ = [
     "TracerContext",
     "TraceRecord",
     "TraceContextData",
     "AutoGraphBuilder",
     "autograph",
+    "jit",  # Unified JIT interface
+    "trace_jit",  # Legacy access to trace-based JIT
+    "structural_jit",  # Legacy access to structural JIT
+    "disable_structural_jit",  # Utility for disabling structural JIT
 ]

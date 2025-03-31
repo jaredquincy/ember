@@ -5,7 +5,6 @@ This module provides functions for validating types at runtime,
 which can be used for testing and validation purposes.
 """
 
-import inspect
 from typing import (
     Any,
     Dict,
@@ -74,7 +73,7 @@ def validate_type(value: Any, expected_type: Type[T]) -> bool:
 
         # Check generic type parameters if available
         if hasattr(value, "__orig_class__"):
-            value_type_args = get_args(getattr(value, "__orig_class__"))
+            value_type_args = get_args(value.__orig_class__)
             expected_type_args = get_args(expected_type)
 
             # Skip validation if we don't have enough information
@@ -118,7 +117,7 @@ def validate_instance_attrs(obj: Any, cls: Type) -> Dict[str, Any]:
 
     for attr_name, expected_type in type_hints.items():
         if not hasattr(obj, attr_name):
-            errors.setdefault(attr_name, []).append(f"Missing attribute")
+            errors.setdefault(attr_name, []).append("Missing attribute")
             continue
 
         attr_value = getattr(obj, attr_name)

@@ -48,7 +48,6 @@ def create_dummy_config(tmp_path: Path) -> Path:
 @pytest.fixture(autouse=True)
 def patch_factory() -> None:
     """Patch ModelFactory to always return a dummy provider for integration testing."""
-    from unittest.mock import patch
 
     # Define a DummyProvider class for our tests
     class DummyProvider:

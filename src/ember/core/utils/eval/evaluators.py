@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-import re
 import subprocess
-from typing import Any, Callable, Dict, Generic, List, Optional, TypeVar, Union
+from typing import Any, Callable, Generic, Optional, TypeVar
 
 from .base_evaluator import EvaluationResult, IEvaluator
 from .extractors import RegexExtractor
@@ -277,6 +276,55 @@ class EditDistanceScoringEvaluator:
                 pairs += 1
         
         return total_distance / pairs if pairs > 0 else 0.0
+
+
+class MultipleChoiceEvaluator(IEvaluator[str, str]):
+    """Evaluator to check if a system output contains the correct multiple-choice answer.
+
+    Searches for any occurrence of the correct choice (e.g., "A", "B", "C", "D") in the
+    system output text, allowing for different formats like "The answer is A" or
+    just "A".
+
+    Example:
+        evaluator = MultipleChoiceEvaluator()
+        result = evaluator.evaluate("I think the answer is C because...", "C")
+    """
+
+    def evaluate(
+        self, system_output: str, correct_answer: str, **kwargs: Any
+    ) -> EvaluationResult:
+        """Evaluates whether the system output contains the correct multiple-choice answer.
+
+        Args:
+            system_output (str): The system-generated text that should contain an answer.
+            correct_answer (str): The expected answer letter or identifier (e.g., "A").
+            **kwargs: Additional keyword arguments (unused).
+
+        Returns:
+            EvaluationResult: An object with `is_correct` set to True if the correct
+                              answer is found in the system output.
+        """
+        # Clean and normalize the system output and correct answer
+        system_output = system_output.strip().upper()
+        correct_answer = correct_answer.strip().upper()
+
+        # Look for answer patterns: standalone letter, or letter with context
+        patterns = [
+            rf"\b{correct_answer}\b",  # Exact letter match
+            rf"(?:ANSWER|OPTION|CHOICE)\s+IS\s+{correct_answer}",  # "Answer is X"
+            rf"{correct_answer}\)",  # "A)" format
+            rf"\({correct_answer}\)",  # "(A)" format
+        ]
+
+        # Check if any pattern matches
+        import re
+
+        for pattern in patterns:
+            if re.search(pattern, system_output):
+                return EvaluationResult(is_correct=True, score=1.0)
+
+        # No match found
+        return EvaluationResult(is_correct=False, score=0.0)
 
 
 class PartialRegexEvaluator(ComposedEvaluator[str, str]):

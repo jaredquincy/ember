@@ -1,7 +1,4 @@
 from collections import Counter
-from typing import Dict
-
-import pytest
 
 from tests.helpers.simplified_imports import EmberModel
 

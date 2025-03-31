@@ -72,7 +72,6 @@ import anthropic
 import yaml
 from pydantic import Field, field_validator
 from tenacity import retry, stop_after_attempt, wait_exponential
-from typing_extensions import TypedDict
 
 from ember.core.registry.model.base.schemas.chat_schemas import (
     ChatRequest,

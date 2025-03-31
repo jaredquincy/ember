@@ -7,17 +7,7 @@ transform test modules.
 
 import os
 
-import pytest
-
-
-def pytest_addoption(parser):
-    """Add custom command-line options for XCS transform tests."""
-    parser.addoption(
-        "--run-perf-tests",
-        action="store_true",
-        default=False,
-        help="Run performance tests which may take longer to execute",
-    )
+# Note: The --run-perf-tests option is now defined in the root conftest.py
 
 
 # Setup test environment for all mesh tests

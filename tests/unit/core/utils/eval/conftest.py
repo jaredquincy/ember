@@ -31,7 +31,6 @@ except ImportError:
     from ember.core.utils.eval.evaluators import (
         ExactMatchEvaluator,
         NumericToleranceEvaluator,
-        PartialRegexEvaluator,
     )
 
 

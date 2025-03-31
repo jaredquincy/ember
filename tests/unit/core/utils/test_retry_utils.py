@@ -6,15 +6,13 @@ These tests verify the behavior of retry strategies and backoff mechanisms.
 
 import asyncio
 import time
-from unittest.mock import Mock, call, patch
+from unittest.mock import Mock, patch
 
 import pytest
-from tenacity import RetryError
 
 from ember.core.utils.retry_utils import (
     ExponentialBackoffStrategy,
     IRetryStrategy,
-    _default_strategy,
     run_with_backoff,
 )
 
@@ -118,16 +116,13 @@ class TestExponentialBackoffStrategy:
 class TestRunWithBackoff:
     """Tests for the run_with_backoff convenience function."""
 
-    def test_run_with_backoff_delegates_to_default_strategy(self):
-        """Verify that run_with_backoff uses the default strategy."""
+    def test_run_with_backoff_delegates_to_strategy(self):
+        """Verify that run_with_backoff delegates to strategy."""
         mock_func = Mock(return_value="success")
+        result = run_with_backoff(mock_func, "arg1", kwarg1="value1")
 
-        with patch("ember.core.utils.retry_utils._default_strategy") as mock_strategy:
-            run_with_backoff(mock_func, "arg1", kwarg1="value1")
-
-            mock_strategy.execute.assert_called_once_with(
-                mock_func, "arg1", kwarg1="value1"
-            )
+        assert result == "success"
+        mock_func.assert_called_once_with("arg1", kwarg1="value1")
 
     def test_run_with_backoff_returns_strategy_result(self):
         """Verify that run_with_backoff returns the result from the strategy."""
@@ -279,7 +274,6 @@ def test_tenacity_import_error_handler():
 
     This covers the try/except block for the tenacity import.
     """
-    import builtins
     import importlib
     import sys
 

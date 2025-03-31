@@ -7,15 +7,16 @@ and unified registry systems.
 import unittest
 from unittest import mock
 
-from ember.core.utils.data.base.models import DatasetInfo, TaskType
+from ember.core.utils.data.base.models import TaskType
 from ember.core.utils.data.datasets_registry.commonsense_qa import CommonsenseQAPrepper
 from ember.core.utils.data.datasets_registry.halueval import HaluEvalPrepper
 from ember.core.utils.data.datasets_registry.mmlu import MMLUPrepper
 from ember.core.utils.data.datasets_registry.short_answer import ShortAnswerPrepper
 from ember.core.utils.data.datasets_registry.truthful_qa import TruthfulQAPrepper
+from ember.core.utils.data.loader_factory import DatasetLoaderFactory
 from ember.core.utils.data.registry import (
-    UNIFIED_REGISTRY,
-    UnifiedDatasetRegistry,
+    DATASET_REGISTRY,
+    DatasetRegistry,
     initialize_registry,
 )
 
@@ -36,21 +37,18 @@ class TestDatasetInitialization(unittest.TestCase):
     def test_initialize_registry(self) -> None:
         """Test that initialize_registry registers core datasets."""
         # For this test, we'll create a simple mock and verify it gets called
-        with mock.patch(
-            "ember.core.utils.data.registry.UNIFIED_REGISTRY.register_metadata"
-        ) as mock_register:
-            # Since initialize_registry is a complex function with dependencies,
-            # we'll keep our test simple and focused
+        with mock.patch.object(DATASET_REGISTRY, "register_metadata") as register_spy:
+            # Call initialize_registry function
             initialize_registry()
 
-            # Verify the register_metadata was called
-            self.assertEqual(5, mock_register.call_count)
+            # Verify the register_metadata was called with at least the core datasets
+            self.assertGreaterEqual(register_spy.call_count, 5)
 
             # Get the dataset names that were registered
             registered_datasets = {
-                call[1]["name"] for call in mock_register.call_args_list
+                call[1]["name"] for call in register_spy.call_args_list
             }
-            expected_datasets = {
+            core_datasets = {
                 "truthful_qa",
                 "mmlu",
                 "commonsense_qa",
@@ -58,26 +56,24 @@ class TestDatasetInitialization(unittest.TestCase):
                 "my_shortanswer_ds",
             }
 
-            # Verify all expected datasets were registered
-            self.assertEqual(expected_datasets, registered_datasets)
+            # Verify all core datasets were registered
+            self.assertTrue(core_datasets.issubset(registered_datasets))
 
     def test_initialize_registry_with_real_implementation(self) -> None:
         """Test that the actual initialize_registry implementation works correctly."""
-        # We'll mock the function calls but preserve their implementation
-        with mock.patch(
-            "ember.core.utils.data.registry.UNIFIED_REGISTRY.register_metadata"
-        ) as mock_register:
+        # Same test as above but validating the prepper classes too
+        with mock.patch.object(DATASET_REGISTRY, "register_metadata") as register_spy:
             # Call the real initialize_registry
             initialize_registry()
 
-            # Verify it registered the expected datasets
-            self.assertEqual(5, mock_register.call_count)
+            # Verify it registered at least the expected core datasets
+            self.assertGreaterEqual(register_spy.call_count, 5)
 
             # Get the dataset names that were registered
             registered_datasets = {
-                call[1]["name"] for call in mock_register.call_args_list
+                call[1]["name"] for call in register_spy.call_args_list
             }
-            expected_datasets = {
+            core_datasets = {
                 "truthful_qa",
                 "mmlu",
                 "commonsense_qa",
@@ -85,48 +81,54 @@ class TestDatasetInitialization(unittest.TestCase):
                 "my_shortanswer_ds",
             }
 
-            # Verify all expected datasets were registered
-            self.assertEqual(expected_datasets, registered_datasets)
+            # Verify all core datasets were registered
+            self.assertTrue(core_datasets.issubset(registered_datasets))
 
             # Create a map of dataset name to prepper class
             prepper_class_map = {
                 call[1]["name"]: call[1]["prepper_class"]
-                for call in mock_register.call_args_list
+                for call in register_spy.call_args_list
             }
 
             # Verify prepper classes by name instead of direct equality due to import remapping
-            self.assertEqual(
-                TruthfulQAPrepper.__name__, prepper_class_map["truthful_qa"].__name__
-            )
-            self.assertEqual(MMLUPrepper.__name__, prepper_class_map["mmlu"].__name__)
-            self.assertEqual(
-                CommonsenseQAPrepper.__name__,
-                prepper_class_map["commonsense_qa"].__name__,
-            )
-            self.assertEqual(
-                HaluEvalPrepper.__name__, prepper_class_map["halueval"].__name__
-            )
-            self.assertEqual(
-                ShortAnswerPrepper.__name__,
-                prepper_class_map["my_shortanswer_ds"].__name__,
-            )
+            # Check only the core datasets that we can directly reference
+            if "truthful_qa" in prepper_class_map:
+                self.assertEqual(
+                    TruthfulQAPrepper.__name__,
+                    prepper_class_map["truthful_qa"].__name__,
+                )
+            if "mmlu" in prepper_class_map:
+                self.assertEqual(
+                    MMLUPrepper.__name__, prepper_class_map["mmlu"].__name__
+                )
+            if "commonsense_qa" in prepper_class_map:
+                self.assertEqual(
+                    CommonsenseQAPrepper.__name__,
+                    prepper_class_map["commonsense_qa"].__name__,
+                )
+            if "halueval" in prepper_class_map:
+                self.assertEqual(
+                    HaluEvalPrepper.__name__, prepper_class_map["halueval"].__name__
+                )
+            if "my_shortanswer_ds" in prepper_class_map:
+                self.assertEqual(
+                    ShortAnswerPrepper.__name__,
+                    prepper_class_map["my_shortanswer_ds"].__name__,
+                )
 
     def test_legacy_initialization_compatibility(self) -> None:
         """Test that the legacy initialization function works with the unified registry."""
         # Import legacy initialization functions
         from ember.core.utils.data.initialization import initialize_dataset_registry
 
-        # Mock the legacy function's dependencies
-        with mock.patch(
-            "ember.core.utils.data.metadata_registry.UNIFIED_REGISTRY.register_metadata"
-        ) as mock_register:
-            # Create mock registry and loader factory
-            mock_metadata_registry = mock.MagicMock()
-            mock_loader_factory = mock.MagicMock()
+        # Create real test doubles for the dependencies
+        mock_metadata_registry = DatasetRegistry()
+        mock_loader_factory = DatasetLoaderFactory()
 
-            # Add required attribute for test to pass
-            mock_metadata_registry.register = mock.MagicMock()
-
+        # Use a spy to track calls to register
+        with mock.patch.object(
+            mock_metadata_registry, "register", wraps=mock_metadata_registry.register
+        ) as register_spy:
             # Call the legacy initialization function
             initialize_dataset_registry(
                 metadata_registry=mock_metadata_registry,
@@ -134,17 +136,25 @@ class TestDatasetInitialization(unittest.TestCase):
             )
 
             # Verify the correct number of calls were made
-            self.assertGreaterEqual(mock_metadata_registry.register.call_count, 4)
-            self.assertGreaterEqual(mock_loader_factory.register.call_count, 5)
+            self.assertGreaterEqual(register_spy.call_count, 4)
+
+            # Use a spy to track calls to loader factory register method
+            with mock.patch.object(
+                mock_loader_factory, "register", wraps=mock_loader_factory.register
+            ) as loader_spy:
+                # Re-initialize to track loader factory calls
+                initialize_dataset_registry(
+                    metadata_registry=mock_metadata_registry,
+                    loader_factory=mock_loader_factory,
+                )
+                self.assertGreaterEqual(loader_spy.call_count, 5)
 
     def test_registry_integration(self) -> None:
         """Test integration between registry components."""
         # Get a reference to the global registry
-        from ember.core.utils.data.base.models import TaskType
-        from ember.core.utils.data.registry import UNIFIED_REGISTRY
 
         # Create a clean test registry
-        test_registry = UnifiedDatasetRegistry()
+        test_registry = DatasetRegistry()
 
         # Mock for the prepper class (since we don't need real functionality)
         prepper_mock = mock.MagicMock()

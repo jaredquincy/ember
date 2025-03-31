@@ -9,7 +9,7 @@ from unittest import mock
 
 from ember.core.utils.data.base.models import DatasetInfo, TaskType
 from ember.core.utils.data.initialization import initialize_dataset_registry
-from ember.core.utils.data.registry import UNIFIED_REGISTRY, UnifiedDatasetRegistry
+from ember.core.utils.data.registry import DATASET_REGISTRY, DatasetRegistry
 
 
 class TestRegistryCompatibility(unittest.TestCase):
@@ -18,18 +18,18 @@ class TestRegistryCompatibility(unittest.TestCase):
     def setUp(self) -> None:
         """Set up test fixtures."""
         # Save the original registry
-        self.original_registry = UNIFIED_REGISTRY
+        self.original_registry = DATASET_REGISTRY
 
         # Create a clean test registry
-        self.test_registry = UnifiedDatasetRegistry()
+        self.test_registry = DatasetRegistry()
 
     def tearDown(self) -> None:
         """Tear down test fixtures."""
         # Restore original registry
-        globals()["UNIFIED_REGISTRY"] = self.original_registry
+        globals()["DATASET_REGISTRY"] = self.original_registry
 
-    def test_initialization_with_register_new(self) -> None:
-        """Test initialization using register_new instead of register."""
+    def test_initialization_with_register(self) -> None:
+        """Test initialization using register method."""
         # Create a custom DatasetInfo
         test_info = DatasetInfo(
             name="test_dataset",
@@ -41,8 +41,8 @@ class TestRegistryCompatibility(unittest.TestCase):
         # Create mocks
         mock_loader_factory = mock.MagicMock()
 
-        # Register using register_new method
-        self.test_registry.register_new(name=test_info.name, info=test_info)
+        # Register using register method (the new standard API)
+        self.test_registry.register(name=test_info.name, info=test_info)
 
         # Call the initialization function with our test registry
         initialize_dataset_registry(
@@ -62,9 +62,9 @@ class TestRegistryCompatibility(unittest.TestCase):
         self.assertIsNotNone(self.test_registry.get_info(name="truthful_qa"))
 
     def test_registry_accessor_compatibility(self) -> None:
-        """Test that our registry accessor compatibility works."""
-        # Create a normal UnifiedDatasetRegistry
-        registry = UnifiedDatasetRegistry()
+        """Test that our registry accessor patterns work."""
+        # Create a normal DatasetRegistry
+        registry = DatasetRegistry()
 
         # Create a test DatasetInfo
         test_info = DatasetInfo(
@@ -74,11 +74,8 @@ class TestRegistryCompatibility(unittest.TestCase):
             task_type=TaskType.MULTIPLE_CHOICE,
         )
 
-        # Register using register_new
-        registry.register_new(name=test_info.name, info=test_info)
-
-        # Importing the function that has our compatibility code
-        from ember.core.utils.data import initialize_dataset_registry
+        # Register using standard register method
+        registry.register(name=test_info.name, info=test_info)
 
         # Create helper class to test different access patterns
         class RegistryAccessor:

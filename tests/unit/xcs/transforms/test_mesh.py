@@ -6,18 +6,15 @@ including DeviceMesh, PartitionSpec, and mesh_sharded execution. Tests cover bas
 functionality, sharding strategies, edge cases, and performance characteristics.
 """
 
-import multiprocessing
 import os
 import threading
 import time
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple
-from unittest.mock import patch
 
 import numpy as np
 import pytest
 
-from ember.xcs.transforms import DeviceMesh, PartitionSpec, mesh_sharded
 from ember.core.exceptions import TransformError
+from ember.xcs.transforms import DeviceMesh, PartitionSpec, mesh_sharded
 from ember.xcs.transforms.mesh import (
     InputOutputMapper,
     OutputAggregator,
@@ -31,14 +28,10 @@ from tests.unit.xcs.transforms.mock_operators import (
     BasicOperator,
     ComplexInputOperator,
     ExceptionOperator,
-    MockModule,
     NestedOperator,
-    StatefulOperator,
 )
 from tests.unit.xcs.transforms.test_utils import (
     assert_processing_time,
-    count_unique_threads,
-    generate_batch_inputs,
     time_function_execution,
 )
 

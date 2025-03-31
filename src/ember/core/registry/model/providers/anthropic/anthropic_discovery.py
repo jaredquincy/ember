@@ -14,10 +14,8 @@ from typing import Any, Dict, Optional
 import requests
 from anthropic import Anthropic
 
-from ember.core.registry.model.providers.base_discovery import (
-    BaseDiscoveryProvider,
-    ModelDiscoveryError,
-)
+from ember.core.exceptions import ModelDiscoveryError
+from ember.core.registry.model.providers.base_discovery import BaseDiscoveryProvider
 
 # Module-level logger.
 logger = logging.getLogger(__name__)

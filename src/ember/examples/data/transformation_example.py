@@ -12,9 +12,8 @@ import argparse
 import multiprocessing
 import sys
 import threading
-import time
 from time import perf_counter
-from typing import Any, Callable, Dict, List, Optional, Tuple, Type
+from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
 
 import numpy as np
 from pydantic import BaseModel
@@ -24,13 +23,13 @@ from tqdm import tqdm
 
 from ember.core.registry.operator.base.operator_base import Operator
 from ember.core.registry.specification.specification import Specification
+from ember.core.types.ember_model import EmberModel  # Import EmberModel
 
 # Note: Unused import removed to adhere to clean code practices.
 from ember.xcs.transforms import (
     DeviceMesh,
     PartitionSpec,
     mesh_sharded,
-    pjit,
     pmap,
     vmap,
 )
@@ -112,24 +111,30 @@ def _time_function_call(
     return elapsed, result
 
 
-class SimpleInput(BaseModel):
-    prompts: Any  # Accept any type for prompts
+class SimpleInput(EmberModel):
+    """Input model for SimpleOperator."""
+    prompts: Any = []  # Accept any type for prompts, default to empty list for transformation sharding
 
 
-class SimpleOutput(BaseModel):
+class SimpleOutput(EmberModel):
+    """Output model for SimpleOperator."""
     results: List[str]
 
 
 class SimpleSpecification(Specification):
-    input_model: Type[BaseModel] = SimpleInput
-    structured_output: Type[BaseModel] = SimpleOutput
+    """Specification for SimpleOperator."""
+    input_model: Type[EmberModel] = SimpleInput
+    structured_output: Type[EmberModel] = SimpleOutput
 
 
-class SimpleOperator(Operator[Dict[str, Any], Dict[str, Any]]):
+class SimpleOperator(Operator[SimpleInput, SimpleOutput]):
     """A simple operator that processes input prompts with CPU-intensive operations.
 
     This operator performs computation-heavy work that benefits from parallelization,
     demonstrating the performance advantages of different transformation strategies.
+    
+    This operator properly uses EmberModels for input and output to ensure
+    type compatibility throughout the system, including with transformations.
     """
 
     specification = SimpleSpecification()
@@ -138,18 +143,26 @@ class SimpleOperator(Operator[Dict[str, Any], Dict[str, Any]]):
     is_heavyweight: bool = False
     progress_tracker: Optional[ProgressTracker] = None
 
-    def forward(self, *, inputs: Dict[str, Any]) -> Dict[str, Any]:
+    def forward(self, *, inputs: Union[SimpleInput, Dict[str, Any]]) -> SimpleOutput:
         """Process the provided inputs with CPU-intensive operations.
 
         Args:
-            inputs: A validated SimpleInput model. The prompts field should contain
+            inputs: A SimpleInput model or a dictionary. The prompts field should contain
                 a single string or a list of strings to be processed.
 
         Returns:
-            A dictionary with the key 'results' mapping to a list of processed prompts.
+            A SimpleOutput model with the results field containing processed prompts.
         """
-        # Get prompts from validated input
-        prompts: Any = inputs.prompts
+        # Handle both EmberModel and dictionary inputs for transformation compatibility
+        if isinstance(inputs, dict):
+            # For empty dictionaries or dictionaries without prompts, provide a default
+            if not inputs or "prompts" not in inputs:
+                prompts = ["Default prompt for empty input"]
+            else:
+                prompts = inputs["prompts"]
+        else:
+            # Already a SimpleInput model
+            prompts = inputs.prompts
 
         # Perform CPU-intensive computation
         def cpu_intensive_task(text: str) -> str:
@@ -311,7 +324,8 @@ class SimpleOperator(Operator[Dict[str, Any], Dict[str, Any]]):
         else:
             processed_results = [cpu_intensive_task(prompts)]
 
-        return {"results": processed_results}
+        # Return a SimpleOutput object with the processed results
+        return SimpleOutput(results=processed_results)
 
 
 def demonstrate_vmap() -> None:
@@ -345,16 +359,15 @@ def demonstrate_vmap() -> None:
     vectorized_operator: Callable[..., Any] = vmap(simple_operator)
 
     # Create batch inputs with appropriate size
-    batch_inputs: Dict[str, List[str]] = {
-        "prompts": [f"VMap item {i:03d} batch" for i in range(batch_size)]
-    }
+    prompts_list = [f"VMap item {i:03d} batch" for i in range(batch_size)]
+    batch_inputs = SimpleInput(prompts=prompts_list)
 
     print("\nRunning sequential processing (one item at a time)...")
     # Time sequential processing: apply the operator separately for each prompt.
     start_seq: float = perf_counter()
-    sequential_results: List[Dict[str, Any]] = [
-        simple_operator(inputs={"prompts": prompt})
-        for prompt in batch_inputs["prompts"]
+    sequential_results: List[SimpleOutput] = [
+        simple_operator(inputs=SimpleInput(prompts=prompt))
+        for prompt in prompts_list
     ]
     sequential_time: float = perf_counter() - start_seq
     print(f"Sequential processing time: {sequential_time:.4f}s")
@@ -362,7 +375,7 @@ def demonstrate_vmap() -> None:
     print("\nRunning vectorized processing (all items at once)...")
     # Time vectorized processing: apply the operator once across all inputs.
     start_vec: float = perf_counter()
-    vectorized_results: Dict[str, Any] = vectorized_operator(inputs=batch_inputs)
+    vectorized_results: SimpleOutput = vectorized_operator(inputs=batch_inputs)
     vectorized_time: float = perf_counter() - start_vec
     print(f"Vectorized processing time: {vectorized_time:.4f}s")
 
@@ -385,7 +398,7 @@ def demonstrate_vmap() -> None:
 
     # Display sample results from the vectorized operator.
     print("\nResults from vectorized operator (sample):")
-    results = vectorized_results.get("results", [])
+    results = vectorized_results.results if hasattr(vectorized_results, 'results') else []
     sample_size = min(3, len(results))
     for result in results[:sample_size]:
         print(f"  {result}")
@@ -424,9 +437,8 @@ def demonstrate_pmap() -> None:
     parallel_operator: Callable[..., Any] = pmap(simple_operator)
 
     # Create batch inputs with appropriate size
-    batch_inputs: Dict[str, List[str]] = {
-        "prompts": [f"PMap item {i:03d} core{i%cpu_count}" for i in range(batch_size)]
-    }
+    prompts_list = [f"PMap item {i:03d} core{i%cpu_count}" for i in range(batch_size)]
+    batch_inputs = SimpleInput(prompts=prompts_list)
 
     print("\nRunning sequential processing (single-threaded)...")
     # Time sequential processing on the batch.
@@ -448,7 +460,7 @@ def demonstrate_pmap() -> None:
         # Highlight significant speedups
         if speedup > 1.5:
             print(f"🚀 SIGNIFICANT SPEEDUP ACHIEVED: {speedup:.2f}x faster!")
-            print(f"Parallel processing is effectively using multiple CPU cores!")
+            print("Parallel processing is effectively using multiple CPU cores!")
 
             # Calculate efficiency relative to theoretical maximum
             theoretical_max = min(cpu_count, batch_size)
@@ -483,7 +495,7 @@ def demonstrate_pmap() -> None:
 
     # Display sample results from the parallel operator.
     print("\nResults from parallel operator (sample):")
-    results = parallel_results.get("results", [])
+    results = parallel_results.results if hasattr(parallel_results, 'results') else []
     sample_size = min(3, len(results))
     for result in results[:sample_size]:
         print(f"  {result}")
@@ -584,12 +596,11 @@ def demonstrate_mesh() -> None:
         )
 
         # Create input data with IDs that ensure even distribution
-        batch_inputs: Dict[str, List[str]] = {
-            "prompts": [
-                f"Mesh task {i:03d} region {i % np.prod(device_mesh.shape)}"
-                for i in range(batch_size)
-            ]
-        }
+        prompts_list = [
+            f"Mesh task {i:03d} region {i % np.prod(device_mesh.shape)}"
+            for i in range(batch_size)
+        ]
+        batch_inputs = SimpleInput(prompts=prompts_list)
 
         print("\nMesh parallelization benefits explanation:")
         print("- Distributes work across a structured grid of devices")
@@ -635,7 +646,7 @@ def demonstrate_mesh() -> None:
 
         # Display a sample of results (limit output for large result sets)
         print("\nResults from mesh-sharded operator (sample):")
-        results = sharded_results.get("results", [])
+        results = sharded_results.results if hasattr(sharded_results, 'results') else []
         sample_size: int = min(5, len(results))
         for result in results[:sample_size]:
             print(f"  {result}")

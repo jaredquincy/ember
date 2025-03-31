@@ -15,7 +15,7 @@ The guide follows Ember's architectural principles:
 """
 
 import logging
-from typing import Any, ClassVar, Dict, List, Optional, Type, TypeVar, Union, cast
+from typing import Any, ClassVar, Dict, List, Optional, TypeVar, Union, cast
 
 import numpy as np
 from pydantic import BaseModel, ConfigDict, Field, field_validator

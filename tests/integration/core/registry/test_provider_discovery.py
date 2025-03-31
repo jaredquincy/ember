@@ -22,7 +22,7 @@ from ember.core.registry.model.providers.openai.openai_discovery import OpenAIDi
 @pytest.mark.integration
 @pytest.mark.skipif(
     not os.environ.get("RUN_PROVIDER_INTEGRATION_TESTS"),
-    reason="Provider integration tests only run when explicitly enabled",
+    reason="Provider integration tests only run when explicitly enabled with RUN_PROVIDER_INTEGRATION_TESTS=1",
 )
 class TestProviderDiscoveryIntegration:
     """Integration tests for provider discovery mechanisms.
@@ -118,7 +118,6 @@ class TestProviderDiscoveryIntegration:
 
     def test_model_registry_with_timeout(self):
         """Test that the ModelRegistry discovery has proper timeout handling."""
-        import time
 
         # Create registry
         registry = ModelRegistry()

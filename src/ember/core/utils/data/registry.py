@@ -1,20 +1,15 @@
-"""Unified Dataset Registry Module
+"""Dataset Registry Module
 
-This module provides a unified registry for datasets, consolidating legacy and new
-registrations along with associated metadata and preppers.
+Registry for datasets with their metadata and preppers.
 """
-
-from __future__ import annotations
 
 import importlib
 import logging
 import pkgutil
 from dataclasses import dataclass
-from functools import lru_cache
 from typing import Any, Callable, Dict, List, Optional, Type
 
-from ember.core.utils.data.base.models import DatasetInfo as LegacyDatasetInfo
-from ember.core.utils.data.base.models import TaskType
+from ember.core.utils.data.base.models import DatasetInfo, TaskType
 from ember.core.utils.data.base.preppers import IDatasetPrepper
 
 logger = logging.getLogger(__name__)
@@ -22,31 +17,30 @@ logger = logging.getLogger(__name__)
 
 @dataclass(frozen=True)
 class RegisteredDataset:
-    """Dataclass representing a registered dataset."""
+    """A registered dataset with its metadata and prepper."""
 
     name: str
     dataset_cls: Optional[Type[Any]] = None
-    info: Optional[LegacyDatasetInfo] = None
+    info: Optional[DatasetInfo] = None
     prepper: Optional[IDatasetPrepper] = None
-    is_legacy: bool = False
 
 
-class UnifiedDatasetRegistry:
-    """A unified registry for datasets, supporting both new and legacy registrations."""
+class DatasetRegistry:
+    """Registry for datasets with their metadata and preppers."""
 
     def __init__(self) -> None:
+        """Initialize an empty registry."""
         self._registry: Dict[str, RegisteredDataset] = {}
-        self._legacy_registry: Dict[str, RegisteredDataset] = {}
 
-    def register_new(
+    def register(
         self,
         *,
         name: str,
         dataset_cls: Optional[Type[Any]] = None,
-        info: Optional[LegacyDatasetInfo] = None,
+        info: Optional[DatasetInfo] = None,
         prepper: Optional[IDatasetPrepper] = None,
     ) -> None:
-        """Register a new dataset.
+        """Register a dataset.
 
         Args:
             name: Name of the dataset to register.
@@ -56,7 +50,7 @@ class UnifiedDatasetRegistry:
         """
         if name in self._registry:
             logger.warning(
-                "Dataset %s is already registered in the new registry; overwriting.",
+                "Dataset %s is already registered; overwriting.",
                 name,
             )
         self._registry[name] = RegisteredDataset(
@@ -64,38 +58,8 @@ class UnifiedDatasetRegistry:
             dataset_cls=dataset_cls,
             info=info,
             prepper=prepper,
-            is_legacy=False,
         )
-        logger.debug("Registered new dataset: %s", name)
-
-    def register_legacy(
-        self,
-        *,
-        name: str,
-        dataset_cls: Optional[Type[Any]] = None,
-        info: Optional[LegacyDatasetInfo] = None,
-        prepper: Optional[IDatasetPrepper] = None,
-    ) -> None:
-        """Register a legacy dataset.
-
-        Args:
-            name: Name of the legacy dataset to register.
-            dataset_cls: Optional class implementing the dataset.
-            info: Optional dataset metadata information.
-            prepper: Optional dataset prepper instance.
-        """
-        if name in self._legacy_registry:
-            logger.warning(
-                "Legacy dataset %s is already registered; overwriting.", name
-            )
-        self._legacy_registry[name] = RegisteredDataset(
-            name=name,
-            dataset_cls=dataset_cls,
-            info=info,
-            prepper=prepper,
-            is_legacy=True,
-        )
-        logger.debug("Registered legacy dataset: %s", name)
+        logger.debug("Registered dataset: %s", name)
 
     def register_metadata(
         self,
@@ -115,11 +79,11 @@ class UnifiedDatasetRegistry:
             task_type: Type of task the dataset is for.
             prepper_class: Class to create a prepper instance from.
         """
-        info: LegacyDatasetInfo = LegacyDatasetInfo(
+        info = DatasetInfo(
             name=name, description=description, source=source, task_type=task_type
         )
-        prepper_instance: IDatasetPrepper = prepper_class()
-        self.register_new(name=name, info=info, prepper=prepper_instance)
+        prepper_instance = prepper_class()
+        self.register(name=name, info=info, prepper=prepper_instance)
 
     def get(self, *, name: str) -> Optional[RegisteredDataset]:
         """Retrieve a registered dataset by name.
@@ -130,10 +94,7 @@ class UnifiedDatasetRegistry:
         Returns:
             The registered dataset entry if found, or None.
         """
-        dataset: Optional[RegisteredDataset] = self._registry.get(name)
-        if dataset is None:
-            dataset = self._legacy_registry.get(name)
-        return dataset
+        return self._registry.get(name)
 
     def list_datasets(self) -> List[str]:
         """List all registered dataset names.
@@ -141,12 +102,10 @@ class UnifiedDatasetRegistry:
         Returns:
             Sorted list of all registered dataset names.
         """
-        all_names = set(self._registry.keys()).union(set(self._legacy_registry.keys()))
-        return sorted(all_names)
+        return sorted(self._registry.keys())
 
-    @lru_cache(maxsize=128)
     def find(self, *, name: str) -> Optional[RegisteredDataset]:
-        """Find a dataset by name, checking both new and legacy registries.
+        """Find a dataset by name.
 
         Args:
             name: Name of the dataset to find.
@@ -179,7 +138,7 @@ class UnifiedDatasetRegistry:
             except ImportError as error:
                 logger.warning("Failed to import module %s: %s", mod_name, error)
 
-    def get_info(self, *, name: str) -> Optional[LegacyDatasetInfo]:
+    def get_info(self, *, name: str) -> Optional[DatasetInfo]:
         """Get metadata information for a registered dataset.
 
         Args:
@@ -188,7 +147,7 @@ class UnifiedDatasetRegistry:
         Returns:
             Dataset information if found, or None.
         """
-        dataset: Optional[RegisteredDataset] = self.get(name=name)
+        dataset = self.get(name=name)
         return dataset.info if dataset is not None else None
 
     def register_with_decorator(
@@ -221,26 +180,25 @@ class UnifiedDatasetRegistry:
                 The decorated class.
             """
             if not hasattr(cls, "info"):
-                cls.info = LegacyDatasetInfo(
+                cls.info = DatasetInfo(
                     name=name,
                     source=source,
                     task_type=task_type,
                     description=description,
                 )
-            self.register_new(name=name, dataset_cls=cls, info=cls.info)
+            self.register(name=name, dataset_cls=cls, info=cls.info)
             return cls
 
         return decorator
 
     def clear(self) -> None:
-        """Clear all registered datasets from both new and legacy registries."""
+        """Clear all registered datasets."""
         self._registry.clear()
-        self._legacy_registry.clear()
         logger.debug("Cleared all registered datasets.")
 
 
-# Global singleton for unified dataset registry
-UNIFIED_REGISTRY: UnifiedDatasetRegistry = UnifiedDatasetRegistry()
+# Global singleton for dataset registry
+DATASET_REGISTRY = DatasetRegistry()
 
 
 # Decorator for registering datasets
@@ -258,7 +216,7 @@ def register(
     Returns:
         Decorator function that registers the decorated class.
     """
-    return UNIFIED_REGISTRY.register_with_decorator(
+    return DATASET_REGISTRY.register_with_decorator(
         name=name, source=source, task_type=task_type, description=description
     )
 
@@ -266,17 +224,20 @@ def register(
 # Initialize the registry with core datasets
 def initialize_registry() -> None:
     """Initialize the dataset registry with core datasets."""
-    # Register core datasets from legacy registry
+    # Register core datasets
     from ember.core.utils.data.datasets_registry import (
+        aime,
+        codeforces,
         commonsense_qa,
+        gpqa,
         halueval,
         mmlu,
         short_answer,
         truthful_qa,
     )
 
-    # Register preppers from the legacy core registry
-    UNIFIED_REGISTRY.register_metadata(
+    # Register preppers from the core registry
+    DATASET_REGISTRY.register_metadata(
         name="truthful_qa",
         description="TruthfulQA dataset",
         source="truthful_qa",
@@ -284,7 +245,7 @@ def initialize_registry() -> None:
         prepper_class=truthful_qa.TruthfulQAPrepper,
     )
 
-    UNIFIED_REGISTRY.register_metadata(
+    DATASET_REGISTRY.register_metadata(
         name="mmlu",
         description="Massive Multitask Language Understanding dataset",
         source="cais/mmlu",
@@ -292,7 +253,7 @@ def initialize_registry() -> None:
         prepper_class=mmlu.MMLUPrepper,
     )
 
-    UNIFIED_REGISTRY.register_metadata(
+    DATASET_REGISTRY.register_metadata(
         name="commonsense_qa",
         description="CommonsenseQA dataset",
         source="commonsense_qa",
@@ -300,7 +261,7 @@ def initialize_registry() -> None:
         prepper_class=commonsense_qa.CommonsenseQAPrepper,
     )
 
-    UNIFIED_REGISTRY.register_metadata(
+    DATASET_REGISTRY.register_metadata(
         name="halueval",
         description="HaluEval dataset",
         source="pminervini/HaluEval",
@@ -308,7 +269,7 @@ def initialize_registry() -> None:
         prepper_class=halueval.HaluEvalPrepper,
     )
 
-    UNIFIED_REGISTRY.register_metadata(
+    DATASET_REGISTRY.register_metadata(
         name="my_shortanswer_ds",
         description="Short Answer dataset",
         source="short_answer",
@@ -316,5 +277,30 @@ def initialize_registry() -> None:
         prepper_class=short_answer.ShortAnswerPrepper,
     )
 
+    # Register new datasets
+    DATASET_REGISTRY.register_metadata(
+        name="aime",
+        description="American Invitational Mathematics Examination",
+        source="Maxwell-Jia/AIME_2024",
+        task_type=TaskType.SHORT_ANSWER,
+        prepper_class=aime.AIMEPrepper,
+    )
+
+    DATASET_REGISTRY.register_metadata(
+        name="gpqa",
+        description="Graduate-level PhD science questions (Diamond subset)",
+        source="Idavidrein/gpqa",
+        task_type=TaskType.MULTIPLE_CHOICE,
+        prepper_class=gpqa.GPQAPrepper,
+    )
+
+    DATASET_REGISTRY.register_metadata(
+        name="codeforces",
+        description="Competitive programming problems",
+        source="open-r1/codeforces",
+        task_type=TaskType.CODE_COMPLETION,
+        prepper_class=codeforces.CodeForcesPrepper,
+    )
+
     # Discover datasets in the ember.data.datasets package
-    UNIFIED_REGISTRY.discover_datasets()
+    DATASET_REGISTRY.discover_datasets()

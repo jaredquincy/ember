@@ -19,7 +19,7 @@ To run:
 
 import logging
 import time
-from typing import Any, ClassVar, Dict, List, Optional, Type
+from typing import ClassVar, Type
 
 from pydantic import Field
 
@@ -193,7 +193,7 @@ def main() -> None:
         print(f"Result: {result}")
         print(f"Value from result: {result.value}")
         # Show computation steps
-        print(f"Computation: 20 + 10 = 30, then × 2 = 60")
+        print("Computation: 20 + 10 = 30, then × 2 = 60")
         print(f"Time: {elapsed:.4f}s (sequential execution)")
 
 

@@ -11,19 +11,15 @@ from __future__ import annotations
 
 from typing import (
     Any,
-    Callable,
     Dict,
     Generic,
     List,
     Optional,
     Protocol,
-    Type,
     TypeVar,
     Union,
     runtime_checkable,
 )
-
-from pydantic import BaseModel
 
 # Import the EmberModel to properly type operators
 from tests.helpers.ember_model import EmberModel

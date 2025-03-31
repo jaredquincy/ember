@@ -933,7 +933,7 @@ def pmap(
         parallelized_func.__doc__ = f"Parallelized version of: {func.__doc__}"
 
     # Add reference back to original function/operator
-    setattr(parallelized_func, "_original_func", func)
+    parallelized_func._original_func = func
 
     return parallelized_func
 

@@ -9,13 +9,11 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from ember.xcs.utils.structured_logging import (
+from src.ember.xcs.utils.structured_logging import (
     LoggingConfig,
     clear_context,
-    configure_logging,
     enrich_exception,
     get_context_value,
-    get_structured_logger,
     log_context,
     set_context_value,
     time_operation,
@@ -139,7 +137,7 @@ def test_with_context_logging(reset_logging_config):
     mock_logger.isEnabledFor.return_value = True
 
     # Patch should_log to always return True to force execution
-    with patch("ember.xcs.utils.structured_logging.should_log", return_value=True):
+    with patch("src.ember.xcs.utils.structured_logging.should_log", return_value=True):
         # Set context and log
         with log_context(user_id="123", operation="test"):
             with_context(mock_logger, logging.INFO, "Test message")
@@ -175,7 +173,7 @@ def test_time_operation_decorator(reset_logging_config):
     # Patch should_log and perf_counter to control behavior
     # Need more perf_counter values to account for the additional time.perf_counter() call in with_context
     with patch(
-        "ember.xcs.utils.structured_logging.should_log", return_value=True
+        "src.ember.xcs.utils.structured_logging.should_log", return_value=True
     ), patch(
         "time.perf_counter", side_effect=[0.0, 0.1, 0.2]
     ):  # Start time, timestamp in log, end time
@@ -199,7 +197,7 @@ def test_time_operation_decorator(reset_logging_config):
     # Create a new decorated function with explicit threshold
     # Note: We need to create a new function because the threshold is captured at decoration time
     with patch(
-        "ember.xcs.utils.structured_logging.should_log", return_value=True
+        "src.ember.xcs.utils.structured_logging.should_log", return_value=True
     ), patch(
         "time.perf_counter", side_effect=[0.0, 0.001, 0.002]
     ):  # Start time, timestamp in log, end time
@@ -274,7 +272,7 @@ def test_performance_options(reset_logging_config):
 def test_enrich_exception(reset_logging_config):
     """Test exception enrichment."""
     # Import directly for consistent mock
-    from ember.xcs.exceptions import XCSError
+    from src.ember.xcs.exceptions import XCSError
 
     # Mock for XCSError with add_context method
     error = XCSError("Test error")
@@ -312,7 +310,7 @@ def test_enrich_exception(reset_logging_config):
 
 def test_should_log_sampling(reset_logging_config):
     """Test logging sampling behavior."""
-    from ember.xcs.utils.structured_logging import should_log
+    from src.ember.xcs.utils.structured_logging import should_log
 
     # Force enabled for testing
     LoggingConfig.enabled = True

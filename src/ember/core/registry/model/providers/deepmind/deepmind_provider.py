@@ -88,15 +88,14 @@ from google.api_core.exceptions import NotFound
 from google.generativeai import GenerativeModel, types
 from pydantic import Field, field_validator
 from tenacity import retry, stop_after_attempt, wait_exponential
-from typing_extensions import TypedDict
 
+from ember.core.exceptions import ModelProviderError, ValidationError
 from ember.core.registry.model.base.schemas.chat_schemas import (
     ChatRequest,
     ChatResponse,
     ProviderParams,
 )
 from ember.core.registry.model.base.schemas.usage import UsageStats
-from ember.core.exceptions import ModelProviderError, ValidationError
 from ember.core.registry.model.base.utils.model_registry_exceptions import (
     InvalidPromptError,
     ProviderAPIError,

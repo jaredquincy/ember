@@ -4,9 +4,9 @@ This module defines the data structures used for configuration in Ember.
 The schemas are designed to be minimal but extensible through Pydantic.
 """
 
-from typing import Any, ClassVar, Dict, List, Optional, Union
+from typing import Dict, Optional, Union
 
-from pydantic import BaseModel, Field, computed_field, field_validator, model_validator
+from pydantic import BaseModel, Field, computed_field
 
 
 class Cost(BaseModel):
@@ -49,16 +49,16 @@ class Model(BaseModel):
     Attributes:
         id: Unique identifier for the model
         name: Human-readable name of the model
-        provider: Provider name
+        provider: Provider name (optional - inferred from parent provider if missing)
         cost_input: Cost per 1000 input tokens
         cost_output: Cost per 1000 output tokens
         rate_limit: Optional rate limiting configuration
     """
 
-    # Required fields
+    # Required fields with flexible validation for backward compatibility
     id: str
     name: str
-    provider: str
+    provider: Optional[str] = None  # Can be inferred from parent provider
 
     # Optional fields with defaults
     cost_input: float = 0.0
@@ -209,3 +209,17 @@ class EmberConfig(BaseModel):
             if provider:
                 return provider.get_model_config(model_name)
         return None
+
+
+class EmberSettings(EmberConfig):
+    """Configuration settings for Ember.
+
+    This class extends EmberConfig to provide a more user-friendly API for configuration.
+    It resolves circular import issues with model configuration.
+
+    Usage:
+        settings = EmberSettings()
+        settings.registry.auto_discover = True
+    """
+
+    pass

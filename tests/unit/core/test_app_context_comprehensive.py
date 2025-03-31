@@ -4,23 +4,17 @@ Comprehensive tests for the ember.core.app_context module.
 This module tests the EmberAppContext, EmberContext and related functions.
 """
 
-import logging
-import signal
 import threading
-from unittest.mock import ANY, MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from ember.core.app_context import (
     EmberAppContext,
     EmberContext,
-    _initialize_api_keys_from_env,
     create_ember_app,
     get_ember_context,
 )
-from ember.core.registry.model.base.registry.model_registry import ModelRegistry
-from ember.core.registry.model.base.services.usage_service import UsageService
-from ember.core.registry.model.initialization import initialize_registry
 
 
 class TestEmberAppContext:
@@ -73,11 +67,11 @@ class TestEmberAppContext:
 class TestCreateEmberApp:
     """Tests for the create_ember_app function."""
 
-    @patch("ember.core.app_context.logging.getLogger")
-    @patch("ember.core.app_context.create_config_manager")
-    @patch("ember.core.app_context._initialize_api_keys_from_env")
-    @patch("ember.core.app_context.initialize_registry")
-    @patch("ember.core.app_context.UsageService")
+    @patch("src.ember.core.app_context.logging.getLogger")
+    @patch("src.ember.core.app_context.create_config_manager")
+    @patch("src.ember.core.app_context._initialize_api_keys_from_env")
+    @patch("src.ember.core.app_context.initialize_registry")
+    @patch("src.ember.core.app_context.UsageService")
     def test_create_ember_app_with_default_config(
         self,
         mock_usage_service,
@@ -129,11 +123,11 @@ class TestCreateEmberApp:
         assert result.usage_service is mock_usage
         assert result.logger is mock_logger
 
-    @patch("ember.core.app_context.logging.getLogger")
-    @patch("ember.core.app_context.create_config_manager")
-    @patch("ember.core.app_context._initialize_api_keys_from_env")
-    @patch("ember.core.app_context.initialize_registry")
-    @patch("ember.core.app_context.UsageService")
+    @patch("src.ember.core.app_context.logging.getLogger")
+    @patch("src.ember.core.app_context.create_config_manager")
+    @patch("src.ember.core.app_context._initialize_api_keys_from_env")
+    @patch("src.ember.core.app_context.initialize_registry")
+    @patch("src.ember.core.app_context.UsageService")
     def test_create_ember_app_with_custom_config(
         self,
         mock_usage_service,
@@ -217,7 +211,7 @@ class TestEmberContext:
         context2 = EmberContext()
         assert context1 is not context2
 
-    @patch("ember.core.app_context.create_ember_app")
+    @patch("src.ember.core.app_context.create_ember_app")
     def test_lazy_loading(self, mock_create_app):
         """Test that app_context is lazy-loaded on first access."""
         # Setup mock
@@ -237,7 +231,7 @@ class TestEmberContext:
         mock_create_app.assert_called_once()
         assert app is mock_app
 
-    @patch("ember.core.app_context.create_ember_app")
+    @patch("src.ember.core.app_context.create_ember_app")
     def test_initialize_with_config_path(self, mock_create_app):
         """Test initializing EmberContext with a config path."""
         # Setup mock
@@ -263,7 +257,7 @@ class TestEmberContext:
         # Verify app context was set
         assert context._app_context is mock_app
 
-    @patch("ember.core.app_context.create_ember_app")
+    @patch("src.ember.core.app_context.create_ember_app")
     def test_initialize_multiple_calls(self, mock_create_app):
         """Test calling initialize multiple times."""
         # Setup mocks for multiple calls
@@ -282,7 +276,7 @@ class TestEmberContext:
         assert context2 is not context1
         assert context2._app_context is mock_app2
 
-    @patch("ember.core.app_context.create_ember_app")
+    @patch("src.ember.core.app_context.create_ember_app")
     def test_get_initializes_if_needed(self, mock_create_app):
         """Test that get() initializes the context if needed."""
         # Setup mock
@@ -296,7 +290,7 @@ class TestEmberContext:
         mock_create_app.assert_called_once()
         assert context._app_context is mock_app
 
-    @patch("ember.core.app_context.create_ember_app")
+    @patch("src.ember.core.app_context.create_ember_app")
     def test_get_returns_new_context_in_test_mode(self, mock_create_app):
         """Test that get() returns a new context each time in test mode."""
         # Setup mock
@@ -312,7 +306,7 @@ class TestEmberContext:
         assert context1._app_context is mock_apps[0]
         assert context2._app_context is mock_apps[1]
 
-    @patch("ember.core.app_context.create_ember_app")
+    @patch("src.ember.core.app_context.create_ember_app")
     def test_getattr_lazy_loads(self, mock_create_app):
         """Test that accessing attributes lazily loads the app context."""
         # Setup mock
@@ -333,7 +327,7 @@ class TestEmberContext:
         mock_create_app.assert_called_once()
         assert registry is mock_app.model_registry
 
-    @patch("ember.core.app_context.create_ember_app")
+    @patch("src.ember.core.app_context.create_ember_app")
     def test_getattr_raises_for_missing_attributes(self, mock_create_app):
         """Test that accessing non-existent attributes raises AttributeError."""
         # Setup mock
@@ -347,7 +341,7 @@ class TestEmberContext:
         with pytest.raises(AttributeError):
             non_existent = context.non_existent_attribute
 
-    @patch("ember.core.app_context.create_ember_app")
+    @patch("src.ember.core.app_context.create_ember_app")
     def test_property_accessors(self, mock_create_app):
         """Test the property accessors for app_context, registry, etc."""
         # Setup mock app and services
@@ -394,7 +388,7 @@ class TestGetEmberContext:
         else:
             EmberContext.disable_test_mode()
 
-    @patch("ember.core.app_context.EmberContext.get")
+    @patch("src.ember.core.app_context.EmberContext.get")
     def test_get_ember_context(self, mock_get):
         """Test that get_ember_context delegates to EmberContext.get()."""
         # Setup mock
@@ -408,7 +402,7 @@ class TestGetEmberContext:
         mock_get.assert_called_once()
         assert result is mock_context
 
-    @patch("ember.core.app_context.create_ember_app")
+    @patch("src.ember.core.app_context.create_ember_app")
     def test_get_ember_context_in_test_mode(self, mock_create_app):
         """Test that get_ember_context works correctly in test mode."""
         # Setup mock to return different contexts
@@ -449,7 +443,7 @@ class TestConcurrency:
         else:
             EmberContext.disable_test_mode()
 
-    @patch("ember.core.app_context.create_ember_app")
+    @patch("src.ember.core.app_context.create_ember_app")
     def test_concurrent_initialization_singleton_mode(self, mock_create_app):
         """Test that concurrent initialization creates only one instance in singleton mode."""
         # Ensure test mode is disabled
@@ -496,7 +490,7 @@ class TestConcurrency:
             for context in results[1:]:
                 assert context is results[0]
 
-    @patch("ember.core.app_context.create_ember_app")
+    @patch("src.ember.core.app_context.create_ember_app")
     def test_concurrent_initialization_test_mode(self, mock_create_app):
         """Test that concurrent initialization creates separate instances in test mode."""
         # Enable test mode

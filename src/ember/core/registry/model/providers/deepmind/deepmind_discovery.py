@@ -3,10 +3,8 @@ import os
 from typing import Any, Dict, List, Optional
 
 from ember.core.app_context import get_app_context
-from ember.core.registry.model.providers.base_discovery import (
-    BaseDiscoveryProvider,
-    ModelDiscoveryError,
-)
+from ember.core.exceptions import ModelDiscoveryError
+from ember.core.registry.model.providers.base_discovery import BaseDiscoveryProvider
 
 logger = logging.getLogger(__name__)
 # Set default log level to WARNING to reduce verbosity

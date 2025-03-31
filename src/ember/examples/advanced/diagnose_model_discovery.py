@@ -14,8 +14,6 @@ import logging
 import os
 import sys
 from pathlib import Path
-from types import ModuleType
-from typing import Any, Dict, List, Optional
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG, format="%(levelname)s: %(name)s: %(message)s")
@@ -120,7 +118,7 @@ def check_provider_registry():
                             logger.debug(f"Found class {item_name} in {name} provider")
                             if hasattr(item, "__provider_name__"):
                                 logger.debug(
-                                    f"Class {item_name} has __provider_name__ = {getattr(item, '__provider_name__')}"
+                                    f"Class {item_name} has __provider_name__ = {item.__provider_name__}"
                                 )
             except ImportError as e:
                 logger.error(f"Failed to import provider modules: {e}")
@@ -161,7 +159,7 @@ def test_discovery_imports():
                         logger.debug(f"Found discovery class: {item_name}")
                         # Print the fetch_models method source
                         if hasattr(item, "fetch_models"):
-                            fetch_method = getattr(item, "fetch_models")
+                            fetch_method = item.fetch_models
                             logger.debug(f"fetch_models method: {fetch_method}")
                             if hasattr(fetch_method, "__code__"):
                                 source_lines = inspect.getsourcelines(fetch_method)

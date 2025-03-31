@@ -5,8 +5,6 @@ import sys
 import unittest
 from typing import Any
 
-import pytest
-
 # Print current path for debugging
 print(f"Python path: {sys.path}")
 print(f"Current directory: {os.getcwd()}")

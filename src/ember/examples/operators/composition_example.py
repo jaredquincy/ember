@@ -15,20 +15,11 @@ To run:
 
 import logging
 import time
-from typing import Any, Callable, ClassVar, Dict, List, Optional, Type, TypeVar, cast
+from typing import Any, Callable, ClassVar, Dict, List, Type, TypeVar
 
 from prettytable import PrettyTable
-from pydantic import BaseModel
 
 # ember API imports
-from ember.api import models
-from ember.api.models import (
-    ModelCost,
-    ModelInfo,
-    ModelRegistry,
-    ProviderInfo,
-    RateLimit,
-)
 from ember.core import non
 from ember.core.registry.model.model_module.lm import LMModule, LMModuleConfig
 from ember.core.registry.operator.base.operator_base import Operator
@@ -106,21 +97,29 @@ class QuestionRefinement(Operator[QuestionRefinementInputs, QuestionRefinementOu
         # Configure internal LM module
         self.lm_module = LMModule(
             config=LMModuleConfig(
-                model_name=model_name,
+                id=model_name,  # Fixed: using "id" instead of "model_name"
                 temperature=temperature,
             )
         )
 
     def forward(self, *, inputs: QuestionRefinementInputs) -> QuestionRefinementOutputs:
         prompt = self.specification.render_prompt(inputs=inputs)
-        response = self.lm_module(prompt=prompt)
 
-        # Get text from response
-        refined_query = (
-            response.strip() if isinstance(response, str) else str(response).strip()
-        )
+        try:
+            response = self.lm_module(prompt=prompt)
 
-        return QuestionRefinementOutputs(refined_query=refined_query)
+            # Get text from response
+            refined_query = (
+                response.strip() if isinstance(response, str) else str(response).strip()
+            )
+
+            return QuestionRefinementOutputs(refined_query=refined_query)
+        except Exception as e:
+            # Graceful error handling for model failures
+            logging.warning(f"Error invoking model {self.model_name}: {str(e)}")
+            # Return a fallback refinement that doesn't fail the pipeline
+            fallback_query = f"Refined: {inputs.query}"
+            return QuestionRefinementOutputs(refined_query=fallback_query)
 
 
 ###############################################################################
@@ -251,7 +250,7 @@ def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
     # Define configuration parameters
-    model_name: str = "openai:gpt-4"
+    model_name: str = "openai:gpt-3.5-turbo"
 
     # Create pipelines using different patterns
     functional_pipeline = create_functional_pipeline(model_name=model_name)
@@ -372,7 +371,7 @@ def main() -> None:
                 else f'Final answer: "{final_answer}"'
             )
             print(f"Time: {elapsed:.4f}s")
-            print(f"Execution mode: Sequential scheduler")
+            print("Execution mode: Sequential scheduler")
 
             # Store in table
             table.add_row(

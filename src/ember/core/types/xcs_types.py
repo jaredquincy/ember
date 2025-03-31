@@ -13,29 +13,20 @@ The type system follows these design principles:
 """
 
 from typing import (
-    Any,
     Callable,
-    ClassVar,
     Dict,
     Generic,
-    Hashable,
     List,
     Mapping,
     Optional,
     Protocol,
-    Sequence,
-    Type,
     TypeVar,
-    Union,
     cast,
     final,
-    overload,
     runtime_checkable,
 )
 
-from typing_extensions import Literal, NotRequired
-from typing_extensions import Protocol as ExtProtocol
-from typing_extensions import TypedDict
+from typing_extensions import Literal, NotRequired, TypedDict
 
 # Standard invariant type variables for regular usage
 NodeInputT = TypeVar("NodeInputT", bound=Mapping[str, object])

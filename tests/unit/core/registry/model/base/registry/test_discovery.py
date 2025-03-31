@@ -9,13 +9,12 @@ This module tests the ModelDiscoveryService which is responsible for:
 """
 
 import asyncio
-import concurrent.futures
 import os
 import sys
 import threading
 import time
 import types
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, Dict, Optional, cast
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -222,7 +221,14 @@ def test_discovery_service_merge_with_config() -> None:
     class MockEmberSettings:
         def __init__(self):
             self.registry = MagicMock()
-            self.registry.models = [model_info]
+            # For the merge_with_config method to properly use this configuration,
+            # we need to ensure the models are handled correctly
+            model_dict = model_info.model_dump()
+            self.registry.models = [
+                types.SimpleNamespace(
+                    id=model_dict["id"], model_dump=lambda: model_dict
+                )
+            ]
 
     # Adding the class to the module
     mock_settings_module.EmberSettings = MockEmberSettings
@@ -232,7 +238,8 @@ def test_discovery_service_merge_with_config() -> None:
     sys.modules["ember.core.registry.model.config.settings"] = mock_settings_module
 
     try:
-        discovered = {"mock:model": {"id": "mock:model", "name": "Mock Model"}}
+        # Directly set the name in the discovered data to ensure it's consistent
+        discovered = {"mock:model": {"id": "mock:model", "name": "Mock Model Override"}}
 
         # Apply environment variable patches for API keys
         with patch.dict("os.environ", {"MOCK_API_KEY": "mock_key"}):

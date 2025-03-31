@@ -6,10 +6,9 @@ transformations, like combining vmap with pmap, pmap with mesh_sharded, etc.
 It also tests the interaction of transformations with the XCS execution engine.
 """
 
-import os
 import threading
 import time
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict
 
 import pytest
 
@@ -22,9 +21,7 @@ from tests.helpers.stub_classes import Operator
 
 # Import test operators
 from tests.unit.xcs.transforms.mock_operators import (
-    AsyncBehaviorOperator,
     BasicOperator,
-    NestedOperator,
 )
 
 # Import directly from our fixed imports module to avoid 'module is not callable' errors
@@ -32,13 +29,11 @@ from tests.unit.xcs.transforms.test_transform_imports import (
     DeviceMesh,
     PartitionSpec,
     mesh_sharded,
-    pjit,
     pmap,
     vmap,
 )
 from tests.unit.xcs.transforms.test_utils import (
     assert_processing_time,
-    generate_batch_inputs,
     time_function_execution,
 )
 
@@ -350,9 +345,9 @@ class TestTransformWithXCSGraph:
         end_time = time.time()
 
         # Verify results flow through the graph correctly
-        assert node1 in result, f"Node1 missing from results"
-        assert node2 in result, f"Node2 missing from results"
-        assert node3 in result, f"Node3 missing from results"
+        assert node1 in result, "Node1 missing from results"
+        assert node2 in result, "Node2 missing from results"
+        assert node3 in result, "Node3 missing from results"
 
         # Check the transformation chain
         assert result[node1]["result"] == "start_step1"
@@ -361,7 +356,7 @@ class TestTransformWithXCSGraph:
 
         # Verify execution completed in a reasonable time
         execution_time = end_time - start_time
-        assert execution_time > 0, f"Execution time should be positive"
+        assert execution_time > 0, "Execution time should be positive"
 
     def test_nested_operator_in_graph(self):
         """Test a nested operator within a graph."""
@@ -407,7 +402,7 @@ class TestTransformWithXCSGraph:
         result = execute_graph(graph=graph, global_input=inputs)
 
         # Verify results
-        assert node in result, f"Node missing from results"
+        assert node in result, "Node missing from results"
         assert "result" in result[node], "No result key in output"
         assert (
             result[node]["result"] == "n1_layer1_layer2"
@@ -472,8 +467,8 @@ class TestTransformWithXCSGraph:
         result = execute_graph(graph=graph, global_input=inputs, scheduler=scheduler)
 
         # Verify results
-        assert node1 in result, f"Node1 missing from results"
-        assert node2 in result, f"Node2 missing from results"
+        assert node1 in result, "Node1 missing from results"
+        assert node2 in result, "Node2 missing from results"
 
         # Check the processing chain
         assert result[node1]["result"] == "async_test_first_step"

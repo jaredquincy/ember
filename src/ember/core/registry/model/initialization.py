@@ -7,10 +7,9 @@ and consistent logging.
 """
 
 import logging
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Optional
 
 from ember.core.config.manager import ConfigManager, create_config_manager
-from ember.core.config.schema import EmberConfig
 from ember.core.exceptions import EmberError
 from ember.core.registry.model.base.registry.model_registry import ModelRegistry
 from ember.core.registry.model.base.schemas.cost import ModelCost, RateLimit
@@ -49,6 +48,7 @@ def _convert_model_config_to_model_info(
         model_name = model_id.split(":")[-1]
 
     # Create cost object
+    cost = ModelCost()
     if hasattr(model_config, "cost"):
         cost = ModelCost(
             input_cost_per_thousand=getattr(
@@ -58,10 +58,14 @@ def _convert_model_config_to_model_info(
                 model_config.cost, "output_cost_per_thousand", 0.0
             ),
         )
-    else:
-        cost = ModelCost()
+    elif hasattr(model_config, "cost_input") and hasattr(model_config, "cost_output"):
+        cost = ModelCost(
+            input_cost_per_thousand=getattr(model_config, "cost_input", 0.0),
+            output_cost_per_thousand=getattr(model_config, "cost_output", 0.0),
+        )
 
     # Create rate limit object
+    rate_limit = RateLimit()
     if hasattr(model_config, "rate_limit"):
         rate_limit = RateLimit(
             tokens_per_minute=getattr(model_config.rate_limit, "tokens_per_minute", 0),
@@ -69,8 +73,13 @@ def _convert_model_config_to_model_info(
                 model_config.rate_limit, "requests_per_minute", 0
             ),
         )
-    else:
-        rate_limit = RateLimit()
+    elif hasattr(model_config, "tokens_per_minute") or hasattr(
+        model_config, "requests_per_minute"
+    ):
+        rate_limit = RateLimit(
+            tokens_per_minute=getattr(model_config, "tokens_per_minute", 0),
+            requests_per_minute=getattr(model_config, "requests_per_minute", 0),
+        )
 
     # Create provider info with custom args
     provider_info = ProviderInfo(
@@ -90,10 +99,10 @@ def _convert_model_config_to_model_info(
         except Exception as e:
             logger.warning(f"Error extracting custom args: {e}")
 
-    # Create and return model info
+    # Create and return model info with proper id field (not model_id)
     return ModelInfo(
-        model_id=model_id,
-        model_name=model_name,
+        id=model_id,
+        name=model_name,
         cost=cost,
         rate_limit=rate_limit,
         provider=provider_info,
@@ -176,7 +185,12 @@ def initialize_registry(
                 api_key = None
                 if hasattr(provider_config, "api_keys"):
                     if "default" in provider_config.api_keys:
-                        api_key = provider_config.api_keys["default"].key
+                        # Support both object and dict formats
+                        default_key = provider_config.api_keys["default"]
+                        if hasattr(default_key, "key"):
+                            api_key = default_key.key
+                        elif isinstance(default_key, dict) and "key" in default_key:
+                            api_key = default_key["key"]
 
                 if not api_key:
                     logger.warning(
@@ -184,18 +198,19 @@ def initialize_registry(
                     )
                     continue
 
-                # Register models for this provider using standardized list format
+                # Extract model configurations
                 model_configs = []
 
-                # Process models list from provider configuration
-                if hasattr(provider_config, "models") and isinstance(
-                    provider_config.models, list
-                ):
-                    model_configs = [(None, m) for m in provider_config.models]
+                # Support both dict and list formats for backward compatibility
+                if hasattr(provider_config, "models"):
+                    if isinstance(provider_config.models, dict):
+                        model_configs = list(provider_config.models.items())
+                    elif isinstance(provider_config.models, list):
+                        model_configs = [(None, m) for m in provider_config.models]
+                    else:
+                        logger.warning(f"Unsupported model format for {provider_name}")
                 else:
-                    logger.warning(
-                        f"Provider {provider_name} has no models defined or uses unsupported format"
-                    )
+                    logger.warning(f"No models defined for {provider_name}")
 
                 for model_key, model_config in model_configs:
                     try:

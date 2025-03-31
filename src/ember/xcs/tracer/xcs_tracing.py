@@ -16,36 +16,57 @@ from typing import Any, Dict, List, Optional, Type
 
 @dataclass(frozen=False)  # Allow modifications to instances
 class TraceRecord:
-    """Trace record for an operator invocation.
+    """Record of a single operator invocation with complete lifecycle information.
 
     Attributes:
         operator_name (str): Name of the operator.
-        node_id (str): Unique identifier for the operator instance.
+        node_id (str): Unique identifier for this specific invocation.
+        instance_id (str): Identifies the operator instance (from id(operator)).
         inputs (Dict[str, Any]): The inputs passed to the operator.
         outputs (Any): The outputs returned by the operator.
-        timestamp (float): The time at which the operator finished execution.
+        start_time (float): The time at which the operator started execution.
+        end_time (float): The time at which the operator finished execution.
         graph_node_id (Optional[str]): ID used in the graph representation, for autograph internals.
         operator (Any): The operator instance that was called.
+        exception (Optional[Exception]): Exception raised during execution, if any.
     """
 
     operator_name: str
     node_id: str
     inputs: Dict[str, Any]
     outputs: Any
-    timestamp: float = field(default_factory=time.time)
+    instance_id: str = field(default="")
+    start_time: float = field(default_factory=time.time)
+    end_time: float = field(default_factory=time.time)
     graph_node_id: Optional[str] = None
     operator: Any = None
+    exception: Optional[Exception] = None
+
+    @property
+    def timestamp(self) -> float:
+        """Backward compatibility for legacy code using timestamp."""
+        return self.end_time
+
+    @property
+    def duration(self) -> float:
+        """Execution duration in seconds."""
+        return self.end_time - self.start_time
+
+    @property
+    def succeeded(self) -> bool:
+        """Whether the call completed successfully."""
+        return self.exception is None
 
 
 class TracerContext(ContextDecorator):
-    """Context manager for capturing operator execution traces.
+    """Context manager for tracing operator executions.
 
     When active, operator invocations may record their execution details to the active
     context. The active context is stored in thread-local storage to support safe concurrent use.
 
     Attributes:
         records (List[TraceRecord]): List of recorded operator invocation traces.
-        calls: Dictionary mapping call IDs to tracked operator calls
+        active_calls: Dictionary mapping call IDs to tracked operator calls in progress
         is_active: Whether this context is currently active
     """
 
@@ -55,7 +76,7 @@ class TracerContext(ContextDecorator):
         """Initializes a new TracerContext with an empty trace record list."""
         self.records: List[TraceRecord] = []
         self.is_active: bool = False
-        self.calls: Dict[str, TraceRecord] = {}
+        self.active_calls: Dict[str, Dict[str, Any]] = {}
 
     def __enter__(self) -> TracerContext:
         """Enters the tracing context, setting it as the current active context.
@@ -96,36 +117,78 @@ class TracerContext(ContextDecorator):
         self.records.append(record)
 
     def track_call(self, operator: Any, inputs: Dict[str, Any]) -> str:
-        """Track an operator call in the context.
+        """Begin tracking an operator call.
 
         Args:
-            operator: The operator being called
-            inputs: The inputs to the operator
+            operator: The operator instance being called
+            inputs: Input parameters to the operator
 
         Returns:
-            A unique ID for this call
+            call_id: Unique identifier for this invocation
         """
-        call_id = str(len(self.calls) + 1)
-        record = TraceRecord(
-            operator_name=operator.__class__.__name__,
-            node_id=call_id,
-            inputs=inputs,
-            outputs=None,
-            operator=operator,
-        )
-        self.calls[call_id] = record
+        import uuid
+
+        call_id = str(uuid.uuid4())
+        instance_id = str(id(operator))
+
+        # Store in active calls dictionary
+        self.active_calls[call_id] = {
+            "instance_id": instance_id,
+            "operator": operator,
+            "operator_name": getattr(operator, "name", operator.__class__.__name__),
+            "inputs": inputs,
+            "start_time": time.time(),
+        }
+
         return call_id
 
-    def get_call(self, call_id: str) -> Optional[TraceRecord]:
+    def complete_call(
+        self,
+        call_id: str,
+        outputs: Dict[str, Any],
+        exception: Optional[Exception] = None,
+    ) -> TraceRecord:
+        """Complete a tracked call, with optional exception.
+
+        Args:
+            call_id: The call ID returned from track_call
+            outputs: The outputs from the operator execution
+            exception: Exception raised during execution, if any
+
+        Returns:
+            The completed TraceRecord
+        """
+        if call_id not in self.active_calls:
+            raise ValueError(f"Unknown call_id: {call_id}")
+
+        call_data = self.active_calls.pop(call_id)
+
+        # Create and store the complete record
+        record = TraceRecord(
+            instance_id=call_data["instance_id"],
+            node_id=call_id,
+            operator_name=call_data["operator_name"],
+            operator=call_data["operator"],
+            inputs=call_data["inputs"],
+            outputs=outputs,
+            start_time=call_data["start_time"],
+            end_time=time.time(),
+            exception=exception,
+        )
+
+        self.records.append(record)
+        return record
+
+    def get_call(self, call_id: str) -> Optional[Dict[str, Any]]:
         """Get a tracked call by ID.
 
         Args:
             call_id: The call ID to look up
 
         Returns:
-            The TraceRecord for the call, or None if not found
+            The active call data, or None if not found
         """
-        return self.calls.get(call_id)
+        return self.active_calls.get(call_id)
 
     @classmethod
     def get_current(cls) -> Optional[TracerContext]:

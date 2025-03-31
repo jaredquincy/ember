@@ -10,7 +10,7 @@ To run:
 
 import logging
 import os
-from typing import Any, Dict, List
+from typing import List
 
 from prettytable import PrettyTable
 
@@ -248,7 +248,7 @@ def list_available_models():
                         ),
                     ]
                 )
-            except Exception as e:
+            except Exception:
                 table.add_row([provider, model_id, "Error", "Error", "Error"])
 
     print(table)

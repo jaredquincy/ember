@@ -12,9 +12,13 @@ from ember.core.types.config_types import (
     ModelConfigDict,
 )
 from ember.core.types.ember_model import EmberModel
-from ember.core.types.protocols import EmberSerializable  # Legacy alias
-from ember.core.types.protocols import EmberTyped  # Legacy alias
-from ember.core.types.protocols import Serializable, TypedProtocol, TypeInfo
+from ember.core.types.protocols import (
+    EmberSerializable,  # Legacy alias
+    EmberTyped,  # Legacy alias
+    Serializable,
+    TypedProtocol,
+    TypeInfo,
+)
 from ember.core.types.type_check import (
     type_check,
     validate_instance_attrs,

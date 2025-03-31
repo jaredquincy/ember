@@ -10,13 +10,10 @@ import logging
 import os
 from typing import Any, Dict, List, Optional
 
-import openai
 from openai import APIError, OpenAI
 
-from ember.core.registry.model.providers.base_discovery import (
-    BaseDiscoveryProvider,
-    ModelDiscoveryError,
-)
+from ember.core.exceptions import ModelDiscoveryError
+from ember.core.registry.model.providers.base_discovery import BaseDiscoveryProvider
 
 # Module-level logger.
 logger = logging.getLogger(__name__)

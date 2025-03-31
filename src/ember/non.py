@@ -47,7 +47,9 @@ try:
     from ember.core.registry.operator.core.ensemble import (
         EnsembleOperatorInputs as EnsembleInputs,
     )
-    from ember.core.registry.operator.core.ensemble import EnsembleOperatorOutputs
+    from ember.core.registry.operator.core.ensemble import (
+        EnsembleOperatorOutputs,
+    )
     from ember.core.registry.operator.core.most_common import (
         MostCommonAnswerSelectorOperatorInputs as MostCommonInputs,
     )
@@ -66,37 +68,53 @@ try:
     )
 except ImportError:
     # For tests, define stub classes in case imports fail
-    from typing import Any, Dict, List
+    from typing import List
 
-    from pydantic import BaseModel
+    from ember.core.types.ember_model import EmberModel
 
     # Stub classes for when imports fail during test collection
-    class EnsembleInputs(BaseModel):
+    class EnsembleInputs(EmberModel):
+        """Input type for ensemble operations."""
+
         query: str
 
-    class EnsembleOperatorOutputs(BaseModel):
+    class EnsembleOperatorOutputs(EmberModel):
+        """Output type for ensemble operations."""
+
         responses: List[str]
 
-    class MostCommonInputs(BaseModel):
+    class MostCommonInputs(EmberModel):
+        """Input type for most common answer selection."""
+
         query: str
         responses: List[str]
 
-    class MostCommonAnswerSelectorOutputs(BaseModel):
+    class MostCommonAnswerSelectorOutputs(EmberModel):
+        """Output type for most common answer selection."""
+
         final_answer: str
 
-    class JudgeSynthesisInputs(BaseModel):
+    class JudgeSynthesisInputs(EmberModel):
+        """Input type for judge synthesis operations."""
+
         query: str
         responses: List[str]
 
-    class JudgeSynthesisOutputs(BaseModel):
+    class JudgeSynthesisOutputs(EmberModel):
+        """Output type for judge synthesis operations."""
+
         synthesized_response: str
         reasoning: str
 
-    class VerifierInputs(BaseModel):
+    class VerifierInputs(EmberModel):
+        """Input type for verification operations."""
+
         query: str
         candidate_answer: str
 
-    class VerifierOutputs(BaseModel):
+    class VerifierOutputs(EmberModel):
+        """Output type for verification operations."""
+
         verdict: str
         explanation: str
         revised_answer: str
@@ -116,9 +134,7 @@ try:
     )
 except ImportError:
     # Stub implementations for tests
-    from typing import Any, Dict, List, Optional
-
-    from pydantic import BaseModel
+    from typing import List
 
     class UniformEnsemble:
         """Stub UniformEnsemble for tests."""

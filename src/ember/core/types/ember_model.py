@@ -8,15 +8,13 @@ serialization, and type inspection capabilities.
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 from typing import (
     Any,
-    ClassVar,
     Dict,
-    List,
-    Optional,
+    Iterator,
     Type,
     TypeVar,
-    Union,
     cast,
     get_type_hints,
 )
@@ -24,12 +22,12 @@ from typing import (
 from pydantic import BaseModel, ConfigDict, Field
 
 # Import locally to avoid circular imports
-from .protocols import Serializable, TypedProtocol, TypeInfo
+from .protocols import TypeInfo
 
 T = TypeVar("T", bound="EmberModel")
 
 
-class EmberModel(BaseModel):
+class EmberModel(BaseModel, Mapping):
     """
     Base class for all data models in the Ember framework.
 
@@ -40,7 +38,8 @@ class EmberModel(BaseModel):
     - Strong validation through Pydantic
     - Consistent serialization to/from different formats
     - Type introspection for generic programming
-    - Dictionary-like access for compatibility
+    - Full Mapping protocol implementation for dictionary compatibility
+    - Seamless integration with transformation functions
     """
 
     # Use the new ConfigDict style for Pydantic v2 compatibility
@@ -134,6 +133,110 @@ class EmberModel(BaseModel):
             return getattr(self, key)
         except AttributeError:
             raise KeyError(key)
+
+    def keys(self) -> list[str]:
+        """
+        Return a list of attribute names, like a dictionary's keys() method.
+
+        Returns:
+            List of attribute names in this model
+        """
+        return list(self.model_fields.keys())
+
+    def values(self) -> list[Any]:
+        """
+        Return a list of attribute values, like a dictionary's values() method.
+
+        Returns:
+            List of attribute values in this model
+        """
+        return [getattr(self, key) for key in self.keys()]
+
+    def items(self) -> list[tuple[str, Any]]:
+        """
+        Return a list of (key, value) pairs, like a dictionary's items() method.
+
+        Returns:
+            List of (key, value) tuples for this model
+        """
+        return [(key, getattr(self, key)) for key in self.keys()]
+
+    def __iter__(self) -> Iterator[str]:
+        """
+        Implement iterator protocol for the Mapping ABC.
+
+        Returns:
+            Iterator over attribute names
+        """
+        return iter(self.keys())
+
+    def __len__(self) -> int:
+        """
+        Return the number of attributes.
+
+        Returns:
+            Number of attributes in this model
+        """
+        return len(self.keys())
+
+    def __eq__(self, other: object) -> bool:
+        """
+        Implement equality comparison with dictionaries.
+
+        This allows direct comparison with dictionaries based on content.
+
+        Args:
+            other: Object to compare with
+
+        Returns:
+            True if the model is equal to the other object, False otherwise
+        """
+        if isinstance(other, dict):
+            # Compare with dict based on content
+            return self.to_dict() == other
+        elif isinstance(other, EmberModel):
+            # Compare with another EmberModel based on content
+            return self.to_dict() == other.to_dict()
+        return NotImplemented
+
+    def __copy__(self) -> "EmberModel":
+        """
+        Create a shallow copy of this model.
+
+        Returns:
+            A new instance of this model with the same data
+        """
+        return self.__class__(**self.to_dict())
+
+    def __deepcopy__(self, memo: Dict[int, Any]) -> "EmberModel":
+        """
+        Create a deep copy of this model.
+
+        Args:
+            memo: Memoization dictionary for avoiding duplicate copies
+
+        Returns:
+            A deep copy of this model
+        """
+        import copy
+
+        return self.__class__(**copy.deepcopy(self.to_dict(), memo))
+
+    def get(self, key: str, default: Any = None) -> Any:
+        """
+        Dictionary-like get method with default value for missing keys.
+
+        Args:
+            key: Attribute name to access
+            default: Value to return if key is not found
+
+        Returns:
+            Value of the requested attribute or default if not found
+        """
+        try:
+            return getattr(self, key)
+        except AttributeError:
+            return default
 
     def __call__(self) -> Any:
         """

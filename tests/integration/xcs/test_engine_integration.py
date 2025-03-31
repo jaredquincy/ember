@@ -5,12 +5,13 @@ Tests for the XCS execution engine: scheduler execution, error propagation, and 
 These tests ensure that tasks execute in dependency order, errors in tasks are re-raised, and the engine scales.
 """
 
-import pytest
 
 from ember.xcs.engine.xcs_engine import (
     TopologicalSchedulerWithParallelDispatch as XCSScheduler,
 )
-from ember.xcs.engine.xcs_engine import compile_graph
+from ember.xcs.engine.xcs_engine import (
+    compile_graph,
+)
 from ember.xcs.graph.xcs_graph import XCSGraph
 
 

@@ -32,10 +32,7 @@ Example:
 
 from __future__ import annotations
 
-import functools
-import inspect
-import warnings
-from typing import Any, Callable, Dict, List, Optional, Type, TypeVar, Union, cast
+from typing import Any, Callable, Dict, List, Optional, Type, TypeVar, Union
 
 from ember.xcs.api.types import (
     ExecutionResult,
@@ -43,7 +40,7 @@ from ember.xcs.api.types import (
     TransformOptions,
     XCSExecutionOptions,
 )
-from ember.xcs.engine.execution_options import ExecutionOptions, execution_options
+from ember.xcs.engine.execution_options import execution_options
 from ember.xcs.engine.xcs_engine import execute_graph
 from ember.xcs.graph.xcs_graph import XCSGraph
 from ember.xcs.tracer.autograph import AutoGraphBuilder
@@ -51,7 +48,6 @@ from ember.xcs.tracer.tracer_decorator import jit as raw_jit
 from ember.xcs.tracer.xcs_tracing import TraceRecord
 from ember.xcs.transforms.mesh import DeviceMesh, PartitionSpec
 from ember.xcs.transforms.mesh import mesh_sharded as raw_mesh_sharded
-from ember.xcs.transforms.pmap import pjit as raw_pjit
 from ember.xcs.transforms.pmap import pmap as raw_pmap
 from ember.xcs.transforms.vmap import vmap as raw_vmap
 

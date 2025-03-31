@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional
+from typing import Optional
 
 from pydantic import ConfigDict, Field, ValidationInfo, field_validator
 
@@ -18,6 +18,7 @@ class ModelInfo(EmberModel):
         rate_limit (RateLimit, optional): Rate limiting parameters for model usage. Defaults to no rate limits.
         provider (ProviderInfo): Provider information containing defaults and endpoints.
         api_key (Optional[str]): API key for authentication. If omitted, the provider's default API key is used.
+        context_window (Optional[int]): Maximum context window size in tokens.
     """
 
     model_config = ConfigDict(
@@ -30,6 +31,7 @@ class ModelInfo(EmberModel):
     rate_limit: RateLimit = Field(default_factory=RateLimit)
     provider: ProviderInfo
     api_key: Optional[str] = None
+    context_window: Optional[int] = None
 
     @property
     def model_id(self) -> str:

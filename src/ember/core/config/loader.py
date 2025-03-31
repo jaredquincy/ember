@@ -6,7 +6,6 @@ and transforming it into a validated EmberConfig object.
 
 import os
 import re
-from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from .exceptions import ConfigError
@@ -43,6 +42,12 @@ def resolve_env_vars(config: Dict[str, Any]) -> Dict[str, Any]:
     Returns:
         Configuration with environment variables resolved
     """
+    # Debug print
+    import logging
+
+    logger = logging.getLogger("ember.core.config.loader")
+    logger.debug(f"Resolving environment variables in config: {config}")
+
     if not isinstance(config, dict):
         return config
 
@@ -50,6 +55,7 @@ def resolve_env_vars(config: Dict[str, Any]) -> Dict[str, Any]:
 
     for key, value in config.items():
         if isinstance(value, dict):
+            logger.debug(f"Resolving env vars in nested dict at key {key}: {value}")
             result[key] = resolve_env_vars(value)
         elif isinstance(value, list):
             resolved_list = []
@@ -76,11 +82,18 @@ def resolve_env_vars(config: Dict[str, Any]) -> Dict[str, Any]:
             matches = re.findall(pattern, value)
 
             if matches:
+                logger.debug(
+                    f"Found env var pattern in string at key {key}: {value}, matches: {matches}"
+                )
                 result_value = value
                 for var_name in matches:
                     env_value = os.environ.get(var_name, "")
+                    logger.debug(
+                        f"Substituting env var {var_name} with value: '{env_value}'"
+                    )
                     result_value = result_value.replace(f"${{{var_name}}}", env_value)
                 result[key] = result_value
+                logger.debug(f"After substitution: {result_value}")
             else:
                 result[key] = value
         else:
@@ -207,6 +220,60 @@ def load_from_env(prefix: str = "EMBER") -> Dict[str, Any]:
     return result
 
 
+def normalize_config_schema(config_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Normalize configuration data to the latest schema format.
+
+    Transforms legacy configuration formats to the current schema,
+    handling field names and structure changes without modifying the
+    schema classes themselves.
+
+    Args:
+        config_data: Raw configuration dictionary
+
+    Returns:
+        Normalized configuration ready for validation
+    """
+    result = config_data.copy()
+
+    # Handle legacy registry paths
+    if "model_registry" in result and "registry" not in result:
+        # Map model_registry to registry namespace
+        result["registry"] = result.pop("model_registry")
+
+    # Process provider configurations
+    if "registry" in result and "providers" in result["registry"]:
+        providers = result["registry"]["providers"]
+        for provider_name, provider_config in providers.items():
+            # Handle models
+            if "models" in provider_config:
+                # Convert list format to dict format
+                if isinstance(provider_config["models"], list):
+                    models_dict = {}
+                    for model in provider_config["models"]:
+                        if isinstance(model, dict):
+                            # Use ID as key, default to model name if no ID
+                            model_id = model.get("id", model.get("name", "unknown"))
+
+                            # Ensure required fields are present
+                            if "provider" not in model:
+                                model["provider"] = provider_name
+
+                            models_dict[model_id] = model
+                    provider_config["models"] = models_dict
+
+                # Ensure each model has a provider field
+                if isinstance(provider_config["models"], dict):
+                    for model_id, model in provider_config["models"].items():
+                        if isinstance(model, dict) and "provider" not in model:
+                            model["provider"] = provider_name
+
+                            # If provider is set but id doesn't contain provider prefix, add it
+                            if "id" in model and ":" not in model["id"]:
+                                model["id"] = f"{provider_name}:{model['id']}"
+
+    return result
+
+
 def load_config(
     file_path: Optional[str] = None, env_prefix: str = "EMBER"
 ) -> EmberConfig:
@@ -241,6 +308,9 @@ def load_config(
 
         # Resolve environment variables in strings
         config_data = resolve_env_vars(config_data)
+
+        # Normalize config to current schema before validation
+        config_data = normalize_config_schema(config_data)
 
         # Create and validate config object
         return EmberConfig.model_validate(config_data)

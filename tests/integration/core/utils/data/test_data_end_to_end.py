@@ -7,13 +7,10 @@ Uses minimal test doubles instead of actual implementations.
 import json
 import os
 import tempfile
-from typing import Any, Dict, List
 
-import numpy as np
 import pytest
 
 # Import minimal test doubles instead of actual implementations
-from tests.helpers.data_minimal_doubles import MinimalCsvLoader as CsvLoader
 from tests.helpers.data_minimal_doubles import MinimalDataService as DataService
 from tests.helpers.data_minimal_doubles import MinimalFilter as Filter
 from tests.helpers.data_minimal_doubles import MinimalJsonLoader as JsonLoader

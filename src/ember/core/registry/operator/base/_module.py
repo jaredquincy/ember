@@ -10,8 +10,8 @@ module system. The base classes enable creation of modules that:
   4. Support custom converters for field initialization.
   5. Include thread-safe flattening/unflattening for tree transformations.
 
-The EmberModule system is optimized for JAX-like transformations such as just-in-time (JIT)
-compilation, maps, and future gradient computation while preserving
+The EmberModule system is optimized for JAX-like transformations such as just-in-time
+(JIT) compilation, maps, and future gradient computation while preserving
 compatibility with a native Pythonic, object-oriented programming model.
 """
 
@@ -22,7 +22,6 @@ import collections
 import dataclasses
 import logging
 import threading
-import weakref
 from dataclasses import Field, field
 from typing import (
     Any,
@@ -30,6 +29,7 @@ from typing import (
     Dict,
     Final,
     Generic,
+    Iterator,
     List,
     Optional,
     Tuple,
@@ -153,7 +153,8 @@ class ModuleCache:
 
         Args:
             instance: The EmberModule instance to use as the cache key.
-            value: The flattened representation to cache as (dynamic_fields, static_fields).
+            value: The flattened representation to cache as
+                (dynamic_fields, static_fields).
         """
         cache, lru_order = self._get_cache()
         instance_id = id(instance)
@@ -230,7 +231,9 @@ _module_cache = ModuleCache()
 
 
 def static_field(*, default: object = dataclasses.MISSING, **kwargs: Any) -> Field:
-    """Creates a dataclass field marked as static and excluded from tree transformations.
+    """Factory function that creates a dataclass field marked as static.
+
+    Creates a dataclass field marked as static and excluded from tree transformations.
 
     Static fields are appropriate for configuration parameters and hyperparameters
     that should not be transformed by operations like JIT compilation or function mapping.
@@ -275,7 +278,9 @@ def ember_field(
     init: bool = True,
     **kwargs: Any,
 ) -> Field:
-    """Creates a dataclass field with Ember-specific functionality.
+    """Factory function that creates a dataclass field with Ember-specific functionality.
+
+    Creates a dataclass field with Ember-specific functionality.
 
     This field provides enhanced capabilities for EmberModule fields, including:
 
@@ -326,23 +331,27 @@ def ember_field(
     if static:
         metadata["static"] = True
 
+    # pylint: disable=invalid-field-call
+    # These calls to field() can appear invalid to pylint because they're not directly within
+    # dataclass, but they're returned and used within dataclasses later
     if default is not dataclasses.MISSING:
         return field(default=default, metadata=metadata, init=init, **kwargs)
-    elif default_factory is not dataclasses.MISSING:
+
+    if default_factory is not dataclasses.MISSING:
         return field(
             default_factory=default_factory, metadata=metadata, init=init, **kwargs
         )
-    else:
-        return field(metadata=metadata, init=init, **kwargs)
+
+    return field(metadata=metadata, init=init, **kwargs)
 
 
 def _make_initable_wrapper(cls: Type[T]) -> Type[T]:
     """Creates a temporary mutable wrapper for a frozen dataclass.
 
-    This function solves a fundamental issue with frozen dataclasses: the inability to set
-    attributes during the initialization phase. It creates a subclass that temporarily
-    overrides __setattr__ to allow mutation during initialization, enabling proper
-    field setup in __init__ and __post_init__ methods.
+    This function solves a fundamental issue with frozen dataclasses: the inability to
+    set attributes during initialization. It creates a subclass that temporarily overrides
+    __setattr__ to allow mutation during initialization, enabling proper field setup in
+    __init__ and __post_init__ methods.
 
     The approach preserves the benefits of immutability while eliminating the main
     drawback – the inability to easily initialize computed fields or perform validation
@@ -354,15 +363,18 @@ def _make_initable_wrapper(cls: Type[T]) -> Type[T]:
     - The original __call__ method later swaps the instance back to the frozen class
 
     This design pattern is inspired by functional programming principles where
-    initialization and mutation are strictly separated from the object's normal lifecycle.
+    initialization and mutation are strictly separated from the object's normal
+    lifecycle.
 
     Args:
         cls: The original frozen dataclass to wrap.
 
     Returns:
-        A temporary mutable subclass with identical type signatures but allowing mutation.
+        A temporary mutable subclass with identical type signatures but allowing
+        mutation.
     """
 
+    # pylint: disable=too-few-public-methods
     class Initable(cls):  # type: ignore
         """Temporary mutable wrapper class for initialization."""
 
@@ -383,7 +395,9 @@ def _make_initable_wrapper(cls: Type[T]) -> Type[T]:
 
 
 def _flatten_ember_module(
-    instance: EmberModule, max_cache_size: Optional[int] = None
+    instance: EmberModule,
+    # max_cache_size is unused but kept for API compatibility
+    max_cache_size: Optional[int] = None,  # pylint: disable=unused-argument
 ) -> Tuple[List[object], Dict[str, object]]:
     """Flattens an EmberModule instance into dynamic and static components.
 
@@ -458,8 +472,8 @@ def _unflatten_ember_module(
     """Reconstructs an EmberModule instance from flattened components.
 
     This function reconstructs an EmberModule instance from its flattened representation
-    without invoking the normal initialization process. It's used by transformation systems
-    to recreate modules after applying transformations to their dynamic fields.
+    without invoking normal initialization. It's used by transformation systems to
+    recreate modules after applying transformations to their dynamic fields.
 
     The reconstruction process:
     1. Identifies the names of dynamic fields from the class definition
@@ -472,7 +486,8 @@ def _unflatten_ember_module(
     should rarely be called directly.
 
     Implementation notes:
-    - Bypasses normal initialization for efficiency and correctness after transformations
+    - Bypasses normal initialization for efficiency and correctness after
+      transformations
     - Preserves the exact order of dynamic fields for correct reconstruction
     - Uses direct object.__setattr__ to avoid triggering field conversion again
     - Performs validation to catch bugs in the transformation system
@@ -480,13 +495,15 @@ def _unflatten_ember_module(
     Args:
         cls: The EmberModule class to instantiate.
         aux: Dictionary mapping static field names to their preserved values.
-        children: List of dynamic field values in the same order as the class definition.
+        children: List of dynamic field values in the same order as the class
+            definition.
 
     Returns:
         An instance of the specified class reconstructed from the components.
 
     Raises:
-        ValueError: If the number of dynamic fields does not match the number of children.
+        ValueError: If the number of dynamic fields does not match the number of
+            children.
     """
     # Get the names of dynamic fields in order
     field_names: List[str] = [
@@ -606,11 +623,15 @@ class EmberModuleMeta(abc.ABCMeta):
         )
         return new_class
 
+    # pylint: disable=too-many-locals,too-many-branches
     def __call__(cls: Type[T], *args: Any, **kwargs: Any) -> T:
-        """Creates an instance with complete initialization, regardless of whether super().__init__() is called.
+        """Creates an instance with complete initialization, regardless of whether
+        super().__init__() is called.
 
-        This implementation entirely sidesteps the need for users to call super().__init__()
-        by handling all field initialization before and after the custom __init__ method.
+        This implementation entirely sidesteps the need for users to call
+        super().__init__()
+        by handling all field initialization before and after the custom __init__
+        method.
 
         Args:
             cls: The class being instantiated.
@@ -837,7 +858,7 @@ class EmberModule(metaclass=EmberModuleMeta):
         """
         try:
             _module_cache.clear(self)
-        except:
+        except Exception:  # pylint: disable=broad-except
             # Ignore exceptions during interpreter shutdown
             pass
 

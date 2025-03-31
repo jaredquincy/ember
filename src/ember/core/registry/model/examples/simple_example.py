@@ -4,9 +4,8 @@ This example demonstrates basic usage of the model API without discovery.
 """
 
 import logging
-from typing import List, Optional
 
-from ember.api import ModelBuilder, models
+from ember.api import ModelBuilder
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

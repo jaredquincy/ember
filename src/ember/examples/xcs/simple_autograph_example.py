@@ -10,7 +10,7 @@ To run:
 
 import logging
 import time
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from ember.api.xcs import jit
 from ember.core.registry.operator.base.operator_base import Operator
@@ -171,7 +171,7 @@ def main() -> None:
 
         print(f"Result: {result}")
         print(f"Value: {result['value']}")
-        print(f"Expected calculation: 20 + 10 = 30, then × 3 = 90")
+        print("Expected calculation: 20 + 10 = 30, then × 3 = 90")
         print(f"Time: {sequential_time:.4f}s (sequential execution)")
 
     # Add a summary
@@ -179,7 +179,7 @@ def main() -> None:
     print(f"First run time: {first_run_times[0]:.4f}s (includes tracing overhead)")
     print(f"Cached run time: {cached_time:.4f}s")
     print(f"Sequential execution time: {sequential_time:.4f}s")
-    print(f"\nKey benefits of autograph with JIT:")
+    print("\nKey benefits of autograph with JIT:")
     print("1. Automatic operator dependency discovery")
     print("2. Optimized execution with caching")
     print("3. Flexible execution strategies (parallel, sequential)")

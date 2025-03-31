@@ -5,12 +5,9 @@ execution system, focusing on correct graph execution, task dependencies, and pr
 error handling in accordance with high engineering standards.
 """
 
-from typing import Any, Dict, List
-
-import pytest
+from typing import Any, Dict
 
 from ember.xcs.engine.xcs_engine import (
-    IScheduler,
     TopologicalScheduler,
     TopologicalSchedulerWithParallelDispatch,
     execute_graph,
