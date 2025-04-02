@@ -10,7 +10,10 @@ from .extractors import RegexExtractor
 from diversity import compression_ratio
 import Levenshtein
 import numpy as np
-from ember.core.utils.embedding_utils import EmbeddingModel, CosineSimilarity, calculate_text_similarity
+from ember.core.utils.embedding_utils import (EmbeddingModel, 
+                                              CosineSimilarity, 
+                                              calculate_text_similarity, 
+                                              Text_Embedding_Ada_002_Model)
 
 T_out = TypeVar("T_out")
 T_truth = TypeVar("T_truth")
@@ -207,85 +210,156 @@ class CodeExecutionEvaluator(IEvaluator[str, str]):
 
 # Composite Evaluator Example
 class DiversityEnsembledEvaluator(IEvaluator[List[str], None]):
+    """Evaluator that combines multiple diversity metrics to assess ensemble output diversity.
+
+    Computes diversity as an average of cosine similarity, compression ratio, and edit distance.
+    The higher this score is, the more diverse your text.
+
+    Args:
+        system_output (List[str]): List of generated outputs from the system.
+        embedding_model (EmbeddingModel): The embedding model to compute cosine similarity.
+
+    Returns:
+        EvaluationResult: Average of the three diversity scores with `is_correct=True`.
     """
-    Evaluator to test ensemble outputs -> score them (float)
-    """
+
     def evaluate(
-            self, 
-            system_output: List[str], embedding_model: EmbeddingModel,
-            **kwargs) -> EvaluationResult:
-        if system_output is None or len(system_output) == 0 or embedding_model == None:
+        self,
+        system_output: List[str],
+        embedding_model: EmbeddingModel,
+        **kwargs
+    ) -> EvaluationResult:
+        if not system_output or embedding_model is None:
             return EvaluationResult(is_correct=False, score=-1)
+
         if len(system_output) == 1:
             return EvaluationResult(is_correct=True, score=0)
-        
-       
-        div_cosine =  1 - DiversityCosineSimilarityEvaluator().evaluate(system_output, embedding_model)['score']
-        div_compression = min(DiversityCosineSimilarityEvaluator().evaluate(system_output)['score'], 1)
-        div_edit = DiversityEditDistanceEvaluator.evaluate(system_output)['score']
-        
-        div_ensemble_score = (div_cosine + div_compression + div_edit)/3
 
-        return EvaluationResult(is_correct=True, 
-                                score=div_ensemble_score, 
-                                metadata = {'responses': system_output})
+        # Lower cosine similarity --> more diverse
+        cosine_score = 1.0 - DiversityCosineSimilarityEvaluator().evaluate(system_output, embedding_model).score
+        # higher compression score --> more diverse
+        compression_score = DiversityCompressionEvaluator().evaluate(system_output).score
+        # higher edit distance --> more diverse
+        edit_score = DiversityEditDistanceEvaluator().evaluate(system_output).score
+
+        avg_diversity = (cosine_score + compression_score + edit_score) / 3
+
+        return EvaluationResult(
+            is_correct=True,
+            score=avg_diversity,
+            metadata={"responses": system_output}
+        )
+
 
 class DiversityCosineSimilarityEvaluator(IEvaluator[List[str], None]):
+    """Evaluator that computes average pairwise cosine similarity between outputs.
+
+    Lower average cosine similarity implies greater semantic diversity.
+
+    Args:
+        system_output (List[str]): List of generated outputs from the system.
+        embedding_model (EmbeddingModel): The embedding model used to compute cosine similarity.
+
+    Returns:
+        EvaluationResult: Result with average similarity score and output metadata.
     """
-    Evaluator to test ensemble outputs -> score them (float)
-    """
-        
+    # TODO:
+    # def __init__(self, embedding_model):
+    #     self.embedding_model = embedding_model
+
     def evaluate(
-            self, 
-            system_output: List[str], embedding_model: EmbeddingModel,
-            **kwargs) -> EvaluationResult:
-        if system_output is None or len(system_output) == 0 or embedding_model == None:
+        self,
+        system_output: List[str],
+        embedding_model: EmbeddingModel,
+        **kwargs
+    ) -> EvaluationResult:
+        if not system_output or embedding_model is None:
             return EvaluationResult(is_correct=False, score=-1)
+
         if len(system_output) == 1:
             return EvaluationResult(is_correct=True, score=0)
-        
-        cosine: CosineSimilarity = CosineSimilarity()
 
-        cosine_scores = list()
-        for ind1 in range(len(system_output)):
-            ind2 = ind1+1 if ind1+1 != len(system_output) else 0
-            curr_score = calculate_text_similarity(text1=system_output[ind1], text2=system_output[ind2], model=embedding_model, metric=cosine)
-            cosine_scores.append(curr_score)
-        avg_cosine_score = np.average(cosine_scores)
-        return EvaluationResult(is_correct=True, 
-                                score=avg_cosine_score, 
-                                metadata = {'responses': system_output})
+        cosine = CosineSimilarity()
+        scores = []
+
+        # IDEA: Compute embedding vectors for all system_output --> get the average
+        # Then compute cosine similarity between all other outputs
+
+        # Compare every possible combination of system_output vectors
+        for i in range(len(system_output)):
+            for j in range(i + 1, len(system_output)):
+                sim = calculate_text_similarity(
+                    system_output[i], system_output[j], embedding_model, metric=cosine
+                )
+                scores.append(sim)
+
+        avg_score = float(np.average(scores))
+
+        return EvaluationResult(
+            is_correct=True,
+            score=avg_score,
+            metadata={"responses": system_output}
+        )
 
 
 class DiversityCompressionEvaluator(IEvaluator[List[str], None]):
+    """Evaluator that measures diversity using a compression ratio heuristic.
+
+    Lower compression ratio indicates higher textual diversity. The final score is scaled
+    based on a minimum number of responses (5) and minimum total character count (100).
+
+    Args:
+        system_output (List[str]): List of generated responses.
+
+    Returns:
+        EvaluationResult: Scaled diversity score based on compression.
     """
-    Evaluator to test ensemble outputs -> score them (float)
-    """
+
     def evaluate(
-            self, 
-            system_output: List[str], 
-            **kwargs) -> EvaluationResult:
-        if system_output is None or len(system_output) == 0:
+        self,
+        system_output: List[str],
+        **kwargs
+    ) -> EvaluationResult:
+        if not system_output:
             return EvaluationResult(is_correct=False, score=-1)
 
-        # current compression ratio formula - scaled by min num of words (5 words) + min num of chars (min 100)
-        letter_sum = sum(len(response) for response in system_output)
-        ratio = 1/compression_ratio(system_output) * min(1, len(system_output)/5) * min(1, letter_sum/100)
-        return EvaluationResult(is_correct=True,score=ratio,metadata = {'responses': system_output})    
+        total_chars = sum(len(r) for r in system_output)
+        # ratio = (size of compressed data) / (size of uncompressed data)
+        # Higher ratio is --> more diverse
+        ratio = 1 / compression_ratio(system_output)
+        # Penalize inputs with few words (hard to measure) and inputs with very few characters
+        # Note that this is a temporary patch for compression_ratio does not normalizing over word length
+        scaled_score = ratio * min(1, len(system_output) / 5) * min(1, total_chars / 100)
+
+        return EvaluationResult(
+            is_correct=True,
+            score=scaled_score,
+            metadata={"responses": system_output}
+        )
 
 
 class DiversityEditDistanceEvaluator:
+    """Evaluator that measures lexical diversity using normalized Levenshtein edit distance.
+
+    Computes average pairwise normalized edit distance across all outputs.
+
+    Args:
+        system_output (List[str]): List of generated responses.
+
+    Returns:
+        EvaluationResult: Average normalized edit distance score.
+    """
 
     def evaluate(self, system_output: List[str], **kwargs) -> EvaluationResult:
-        if system_output is None or len(system_output) == 0:
+        if not system_output:
             return EvaluationResult(is_correct=False, score=-1, metadata={})
 
-        diversity_score = self.compute_distance(system_output)
+        score = self.compute_distance(system_output)
 
         return EvaluationResult(
-            is_correct=True, 
-            score=diversity_score,
-            metadata={'responses': system_output}
+            is_correct=True,
+            score=score,
+            metadata={"responses": system_output}
         )
 
     def compute_distance(self, outputs: List[str]) -> float:
@@ -293,49 +367,77 @@ class DiversityEditDistanceEvaluator:
         if n < 2:
             return 0.0
 
-        total_distance = 0
-        pairs = 0
+        total_distance = 0.0
+        num_pairs = 0
 
         for i in range(n):
             for j in range(i + 1, n):
                 dist = Levenshtein.distance(outputs[i], outputs[j])
                 max_len = max(len(outputs[i]), len(outputs[j]))
-                normalized_dist = dist / max_len if max_len > 0 else 0 
-                total_distance += normalized_dist
-                pairs += 1
-        
-        return total_distance / pairs if pairs > 0 else 0.0
+                norm_dist = dist / max_len if max_len > 0 else 0
+                total_distance += norm_dist
+                num_pairs += 1
+
+        return total_distance / num_pairs if num_pairs > 0 else 0.0
+
 
 class DiversityNoveltyEvaluator:
-    
-    def evaluate(self, model: EmbeddingModel, system_output: List[str], **kwargs) -> EvaluationResult:
-        if not system_output or len(system_output) == 0:
+    """Evaluator that measures novelty of each output relative to previously generated ones.
+
+    For each response, computes its cosine distance from all prior responses.
+    Higher novelty implies lower similarity to prior outputs.
+
+    Args:
+        model (EmbeddingModel): Embedding model used for computing cosine similarity.
+        system_output (List[str]): List of outputs ordered by generation.
+
+    Returns:
+        EvaluationResult: Average novelty score across the sequence.
+    """
+
+    def evaluate(
+        self,
+        model: EmbeddingModel,
+        system_output: List[str],
+        **kwargs
+    ) -> EvaluationResult:
+        if not system_output:
             return EvaluationResult(is_correct=False, score=-1, metadata={})
 
-        novelty_scores = [self.compute_novelty(model, r, system_output[:i]) for i, r in enumerate(system_output)]
+        novelty_scores = [
+            self.compute_novelty(model, r, system_output[:i])
+            for i, r in enumerate(system_output)
+        ]
 
-        avg_novelty = sum(novelty_scores) / len(novelty_scores) if novelty_scores else 0.0
+        avg_score = float(np.mean(novelty_scores)) if novelty_scores else 0.0
 
         return EvaluationResult(
             is_correct=True,
-            score=avg_novelty,
-            metadata={'responses': system_output, 'novelty_scores': novelty_scores}
+            score=avg_score,
+            metadata={
+                "responses": system_output,
+                "novelty_scores": novelty_scores
+            }
         )
 
-    def compute_novelty(self, model: EmbeddingModel, response: str, prior_responses: List[str]) -> float:
+    def compute_novelty(
+        self,
+        model: EmbeddingModel,
+        response: str,
+        prior_responses: List[str]
+    ) -> float:
         if not prior_responses:
             return 1.0
 
-        new_embedding = model.embed_text(response)
-        prior_embeddings = [model.embed_text(r) for r in prior_responses]
+        new_emb = model.embed_text(response)
+        prior_embs = [model.embed_text(r) for r in prior_responses]
 
         similarities = [
-            np.dot(new_embedding, prior_embedding) /
-            (np.linalg.norm(new_embedding) * np.linalg.norm(prior_embedding))
-            for prior_embedding in prior_embeddings
+            np.dot(new_emb, pe) / (np.linalg.norm(new_emb) * np.linalg.norm(pe))
+            for pe in prior_embs
         ]
 
-        return 1 - max(similarities)
+        return 1.0 - max(similarities)
 
 
 class MultipleChoiceEvaluator(IEvaluator[str, str]):
