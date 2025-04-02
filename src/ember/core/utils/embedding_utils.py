@@ -70,8 +70,10 @@ class Text_Embedding_Ada_002_Model:
     Methods:
         embed_text: Compute the embedding for a given text.
     """
+    def __init__(self, llm: ModelService):
+        self.llm = llm
 
-    def embed_text(self, llm: ModelService, text: str) -> List[float]:
+    def embed_text(self, text: str) -> List[float]:
         """Computes the embedding vector for the provided text.
 
         Args:
@@ -80,7 +82,7 @@ class Text_Embedding_Ada_002_Model:
         Returns:
             List[float]: A list of floats representing the embedding vector.
         """
-        response = llm(model_id="openai:text-embedding-ada-002", prompt=text)
+        response = self.llm(model_id="openai:text-embedding-ada-002", prompt=text)
         return response.embedding
 
 class OpenAITextEmbedding3(Protocol):

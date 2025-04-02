@@ -6,10 +6,11 @@ from typing import Any, List, Callable, Generic, Optional, TypeVar
 from .base_evaluator import EvaluationResult, IEvaluator
 from .extractors import RegexExtractor
 
+# diversity imports
 from diversity import compression_ratio
 import Levenshtein
 import numpy as np
-from ember.core.utils.embedding_utils import EmbeddingModel
+from ember.core.utils.embedding_utils import EmbeddingModel, CosineSimilarity, calculate_text_similarity
 
 T_out = TypeVar("T_out")
 T_truth = TypeVar("T_truth")
@@ -205,24 +206,54 @@ class CodeExecutionEvaluator(IEvaluator[str, str]):
 
 
 # Composite Evaluator Example
-
-class CosineSimilarityScoringEvaluator(IEvaluator[List[str], None]):
+class DiversityEnsembledEvaluator(IEvaluator[List[str], None]):
     """
     Evaluator to test ensemble outputs -> score them (float)
     """
     def evaluate(
             self, 
-            system_output: List[str], 
+            system_output: List[str], embedding_model: EmbeddingModel,
             **kwargs) -> EvaluationResult:
-        if system_output is None or len(system_output) == 0:
+        if system_output is None or len(system_output) == 0 or embedding_model == None:
             return EvaluationResult(is_correct=False, score=-1)
-
-        # example I was thinking about:
-        letter_sum = sum(len(response) for response in system_output)
-        ratio = 1/compression_ratio(system_output, algorithm="gzip") * min(1, len(system_output)/5) * min(1, letter_sum/100)
+        if len(system_output) == 1:
+            return EvaluationResult(is_correct=True, score=0)
+        
+       
+        div_cosine =  1 - DiversityCosineSimilarityEvaluator().evaluate(system_output, embedding_model)['score']
+        div_compression = min(DiversityCosineSimilarityEvaluator().evaluate(system_output)['score'], 1)
+        div_edit = DiversityEditDistanceEvaluator.evaluate(system_output)['score']
+        
+        div_ensemble_score = (div_cosine + div_compression + div_edit)/3
 
         return EvaluationResult(is_correct=True, 
-                                score=ratio, 
+                                score=div_ensemble_score, 
+                                metadata = {'responses': system_output})
+
+class DiversityCosineSimilarityEvaluator(IEvaluator[List[str], None]):
+    """
+    Evaluator to test ensemble outputs -> score them (float)
+    """
+        
+    def evaluate(
+            self, 
+            system_output: List[str], embedding_model: EmbeddingModel,
+            **kwargs) -> EvaluationResult:
+        if system_output is None or len(system_output) == 0 or embedding_model == None:
+            return EvaluationResult(is_correct=False, score=-1)
+        if len(system_output) == 1:
+            return EvaluationResult(is_correct=True, score=0)
+        
+        cosine: CosineSimilarity = CosineSimilarity()
+
+        cosine_scores = list()
+        for ind1 in range(len(system_output)):
+            ind2 = ind1+1 if ind1+1 != len(system_output) else 0
+            curr_score = calculate_text_similarity(text1=system_output[ind1], text2=system_output[ind2], model=embedding_model, metric=cosine)
+            cosine_scores.append(curr_score)
+        avg_cosine_score = np.average(cosine_scores)
+        return EvaluationResult(is_correct=True, 
+                                score=avg_cosine_score, 
                                 metadata = {'responses': system_output})
 
 
