@@ -106,8 +106,8 @@ def test_anthropic_discovery_fetch_models(discovery_instance, monkeypatch) -> No
     # Verify structure of one model
     model_id = "anthropic:claude-3-5-sonnet"
     entry = models[model_id]
-    assert entry.get("model_id") == model_id
-    assert entry.get("model_name") is not None
+    assert entry.get("id") == model_id
+    assert entry.get("name") is not None
     assert "api_data" in entry
 
 

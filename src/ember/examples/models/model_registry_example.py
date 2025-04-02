@@ -35,6 +35,7 @@ from ember.api.models import (
     ModelCost,
     ModelEnum,
     ModelInfo,
+    ProviderInfo,
     RateLimit,
 )
 
@@ -144,7 +145,7 @@ def type_safe_enum_pattern() -> None:
         model_info = registry.get_model_info(model_id="openai:gpt-4o")
         print("\nModel metadata:")
         print(f"Name: {model_info.name}")
-        print(f"Provider: {model_info.provider['name']}")
+        print(f"Provider: {model_info.provider.name}")
         print(
             f"Input cost per 1K tokens: ${model_info.cost.input_cost_per_thousand:.4f}"
         )
@@ -279,11 +280,11 @@ def custom_model_pattern() -> None:
                 requests_per_minute=3000,  # 3K requests per minute
             ),
             context_window=128000,  # 128K context window
-            provider={
-                "name": "MyOrg AI",
-                "default_api_key": "${MYORG_API_KEY}",
-                "api_base": "https://api.myorg-ai.example.com/v1",
-            },
+            provider=ProviderInfo(
+                name="MyOrg AI",
+                default_api_key="${MYORG_API_KEY}",
+                api_base="https://api.myorg-ai.example.com/v1",
+            ),
         )
 
         # Check if model is already registered to avoid errors
@@ -311,8 +312,8 @@ def custom_model_pattern() -> None:
             print("\nCustom model details:")
             print(f"ID: {info.id}")
             print(f"Name: {info.name}")
-            print(f"Provider: {info.provider['name']}")
-            print(f"API Base URL: {info.provider.get('api_base', 'N/A')}")
+            print(f"Provider: {info.provider.name}")
+            print(f"API Base URL: {getattr(info.provider, 'api_base', 'N/A')}")
             print(f"Context window: {info.context_window} tokens")
             print(f"Input cost: ${info.cost.input_cost_per_thousand:.4f} per 1K tokens")
             print(

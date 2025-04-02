@@ -36,11 +36,21 @@ class MinimalCost:
 class MinimalModelInfo:
     """Minimal test double for model information."""
 
-    model_id: str
-    model_name: str
+    id: str
+    name: str
     provider: str
     provider_model_id: Optional[str] = None
     cost: MinimalCost = field(default_factory=MinimalCost)
+
+    @property
+    def model_id(self) -> str:
+        """Alias for id to maintain backward compatibility."""
+        return self.id
+
+    @property
+    def model_name(self) -> str:
+        """Alias for name to maintain backward compatibility."""
+        return self.name
 
     def get_api_key(self) -> Optional[str]:
         """Get the API key for this model."""

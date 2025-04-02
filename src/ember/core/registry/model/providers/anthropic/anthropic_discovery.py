@@ -213,9 +213,12 @@ class AnthropicDiscovery(BaseDiscoveryProvider):
         Returns:
             Dict[str, Any]: A dictionary containing the standardized model details.
         """
+        model_name = model_data.get("id", model_id.split(":")[-1])
         return {
-            "model_id": model_id,
-            "model_name": model_data.get("id", model_id.split(":")[-1]),
+            "id": model_id,  # Using consistent field names with other providers
+            "name": model_name,
+            "model_id": model_id,  # For tests expecting model_id
+            "model_name": model_name,  # For tests expecting model_name
             "api_data": model_data,
         }
 
