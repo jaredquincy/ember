@@ -123,8 +123,8 @@ class DeepmindDiscovery(BaseDiscoveryProvider):
 
                     model_id: str = f"deepmind:{model_name}"
                     models[model_id] = {
-                        "model_id": model_id,
-                        "model_name": model_name,
+                        "id": model_id,
+                        "name": model_name,
                         "api_data": model,
                     }
 

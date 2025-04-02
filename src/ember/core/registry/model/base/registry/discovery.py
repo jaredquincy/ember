@@ -306,7 +306,7 @@ class ModelDiscoveryService:
                 merged_data = {
                     "id": model_id,
                     "name": api_metadata.get(
-                        "model_name", api_metadata.get("name", model_id.split(":")[-1])
+                        "name", api_metadata.get("model_name", model_id.split(":")[-1])
                     ),
                     "cost": {
                         "input_cost_per_thousand": 0.0,

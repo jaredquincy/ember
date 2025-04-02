@@ -73,8 +73,8 @@ def test_deepmind_discovery_fetch_models(discovery_instance) -> None:
 
     # Verify model structure
     entry = models["deepmind:gemini-1.5-pro"]
-    assert entry.get("model_id") == "deepmind:gemini-1.5-pro"
-    assert entry.get("model_name") == "gemini-1.5-pro"
+    assert entry.get("id") == "deepmind:gemini-1.5-pro"
+    assert entry.get("name") == "gemini-1.5-pro"
 
 
 def test_deepmind_discovery_fetch_models_error(

@@ -32,8 +32,8 @@ class TestProviderDiscoveryIntegration:
 
     def check_minimal_model_data(self, model_data):
         """Verify the minimal structure of model metadata."""
-        assert "model_id" in model_data
-        assert "model_name" in model_data
+        assert "id" in model_data
+        assert "name" in model_data
         assert "api_data" in model_data
 
     @pytest.mark.skipif(
