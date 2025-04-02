@@ -10,10 +10,12 @@ from .extractors import RegexExtractor
 from diversity import compression_ratio
 import Levenshtein
 import numpy as np
-from ember.core.utils.embedding_utils import (EmbeddingModel, 
-                                              CosineSimilarity, 
+from ember.core.utils.embedding_utils import (CosineSimilarity, 
                                               calculate_text_similarity, 
-                                              Text_Embedding_Ada_002_Model)
+                                              )
+from ember.core.registry.model.examples.provider_extension_guide import EmbeddingProviderModel
+
+import logging
 
 T_out = TypeVar("T_out")
 T_truth = TypeVar("T_truth")
@@ -222,21 +224,28 @@ class DiversityEnsembledEvaluator(IEvaluator[List[str], None]):
     Returns:
         EvaluationResult: Average of the three diversity scores with `is_correct=True`.
     """
+    def __init__(self, embedding_model: EmbeddingProviderModel):
+        self.embedding_model = embedding_model
+        if self.embedding_model is None:
+            logging.warning("DiversityEnsembledEvaluator isn't initialized with an embedding model")
 
     def evaluate(
         self,
         system_output: List[str],
-        embedding_model: EmbeddingModel,
         **kwargs
     ) -> EvaluationResult:
-        if not system_output or embedding_model is None:
+        if not system_output:
+            logging.debug("DiversityEnsembledEvaluator didn't receive an output")
             return EvaluationResult(is_correct=False, score=-1)
-
+        if self.embedding_model is None:
+            logging.debug("DiversityEnsembledEvaluator wasn't initialized with an embedding model")
+            return EvaluationResult(is_correct=False, score=-1)
         if len(system_output) == 1:
+            logging.debug("DiversityEnsembledEvaluator only received one string of text")
             return EvaluationResult(is_correct=True, score=0)
 
         # Lower cosine similarity --> more diverse
-        cosine_score = 1.0 - DiversityCosineSimilarityEvaluator().evaluate(system_output, embedding_model).score
+        cosine_score = 1.0 - DiversityCosineSimilarityEvaluator(embedding_model=self.embedding_model).evaluate(system_output).score
         # higher compression score --> more diverse
         compression_score = DiversityCompressionEvaluator().evaluate(system_output).score
         # higher edit distance --> more diverse
@@ -263,33 +272,37 @@ class DiversityCosineSimilarityEvaluator(IEvaluator[List[str], None]):
     Returns:
         EvaluationResult: Result with average similarity score and output metadata.
     """
-    # TODO:
-    # def __init__(self, embedding_model):
-    #     self.embedding_model = embedding_model
+    def __init__(self, embedding_model: EmbeddingProviderModel):
+        self.embedding_model = embedding_model
+        if self.embedding_model is None:
+            logging.warning("DiversityCosineEvaluator isn't initialized with an embedding model")
 
     def evaluate(
         self,
         system_output: List[str],
-        embedding_model: EmbeddingModel,
         **kwargs
     ) -> EvaluationResult:
-        if not system_output or embedding_model is None:
+        if not system_output:
+            logging.debug("DiversityCosineEvaluator didn't receive an output")
             return EvaluationResult(is_correct=False, score=-1)
-
+        if self.embedding_model is None:
+            logging.debug("DiversityCosineEvaluator wasn't initialized with an embedding model")
+            return EvaluationResult(is_correct=False, score=-1)
         if len(system_output) == 1:
+            logging.deubg("DiversityCosineEvaluator only received one string of text")
             return EvaluationResult(is_correct=True, score=0)
 
         cosine = CosineSimilarity()
         scores = []
 
-        # IDEA: Compute embedding vectors for all system_output --> get the average
+        # TODO IDEA: Compute embedding vectors for all system_output --> get the average
         # Then compute cosine similarity between all other outputs
 
         # Compare every possible combination of system_output vectors
         for i in range(len(system_output)):
             for j in range(i + 1, len(system_output)):
                 sim = calculate_text_similarity(
-                    system_output[i], system_output[j], embedding_model, metric=cosine
+                    system_output[i], system_output[j], self.embedding_model, metric=cosine
                 )
                 scores.append(sim)
 
