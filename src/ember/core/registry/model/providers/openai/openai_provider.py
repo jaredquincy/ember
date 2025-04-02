@@ -43,7 +43,9 @@ Usage example:
 
     # Basic usage
     response = model("What is the Ember framework?")
-    print(response.data)  # The model's response text
+    # Access response content with response.data
+    
+    # Example: "The Ember framework is a Python library for composable LLM applications..."
 
     # Advanced usage with more parameters
     response = model(
@@ -54,8 +56,8 @@ Usage example:
     )
 
     # Accessing usage statistics
-    print(f"Used {response.usage.total_tokens} tokens")
-    print(f"Cost: ${response.usage.cost_usd:.6f}")
+    # Example: response.usage.total_tokens -> 145
+    # Example: response.usage.cost_usd -> 0.000145
     ```
 
 For higher-level usage, prefer the model registry or API interfaces:
@@ -316,6 +318,19 @@ class OpenAIModel(BaseProviderModel):
         openai.api_key = api_key
         return openai
 
+    def get_api_model_name(self) -> str:
+        """Get the model name formatted for OpenAI's API requirements.
+        
+        OpenAI API requires lowercase model names. This method ensures that
+        model names are properly formatted regardless of how they're stored
+        internally in the model registry.
+        
+        Returns:
+            str: The properly formatted model name for OpenAI API requests.
+        """
+        # OpenAI API requires lowercase model names
+        return self.model_info.name.lower() if self.model_info.name else ""
+
     def _prune_unsupported_params(
         self, model_name: str, kwargs: Dict[str, Any]
     ) -> Dict[str, Any]:
@@ -392,39 +407,30 @@ class OpenAIModel(BaseProviderModel):
             openai_kwargs["max_completion_tokens"] = openai_kwargs.pop("max_tokens")
 
         # Prune parameters that are unsupported by the current model.
+        # Use the normalized model name from our provider-specific method
         openai_kwargs = self._prune_unsupported_params(
-            model_name=self.model_info.name,
+            model_name=self.get_api_model_name(),
             kwargs=openai_kwargs,
         )
 
         try:
-            if self._is_embedding_model(self.model_info.name):
-                response: Any = self.client.embeddings.create(
-                    model=self.model_info.name,
-                    input=request.prompt,
-                    timeout=30,
-                )
-                embedding = response.data[0].embedding
-                usage_stats = self.usage_calculator.calculate(
-                    raw_output=response,
-                    model_info=self.model_info,
-                )
-
-                return ChatResponse(data="", embedding=embedding, raw_output=response, usage=usage_stats)
-            else:
-                # Use the timeout parameter from the request or the default from BaseChatParameters
-                timeout = openai_kwargs.pop("timeout", 30)
-                response: Any = self.client.chat.completions.create(
-                    model=self.model_info.name,
-                    timeout=timeout,
-                    **openai_kwargs,
-                )
-                content: str = response.choices[0].message.content.strip()
-                usage_stats = self.usage_calculator.calculate(
-                    raw_output=response,
-                    model_info=self.model_info,
-                )
-                return ChatResponse(data=content, raw_output=response, usage=usage_stats)
+            # Use the timeout parameter from the request or the default from BaseChatParameters
+            timeout = openai_kwargs.pop("timeout", 30)
+            
+            # Get properly formatted model name for API using the provider-specific method
+            model_name = self.get_api_model_name()
+            
+            response: Any = self.client.chat.completions.create(
+                model=model_name,
+                timeout=timeout,
+                **openai_kwargs,
+            )
+            content: str = response.choices[0].message.content.strip()
+            usage_stats = self.usage_calculator.calculate(
+                raw_output=response,
+                model_info=self.model_info,
+            )
+            return ChatResponse(data=content, raw_output=response, usage=usage_stats)
         except HTTPError as http_err:
             if 500 <= http_err.response.status_code < 600:
                 logger.error("OpenAI server error: %s", http_err)

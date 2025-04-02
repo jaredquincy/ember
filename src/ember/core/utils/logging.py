@@ -138,41 +138,25 @@ def set_component_group_level(group_name: str, level: int) -> None:
 
 def _configure_http_library_handlers() -> None:
     """
-    Prevent HTTP library logging errors during shutdown.
+    Configure HTTP libraries with appropriate log levels.
 
-    Root cause: The issue stems from httpcore's trace system logging debug messages during
-    garbage collection at interpreter shutdown, when output streams may already be closed.
-
-    This solution directly patches Python's StreamHandler.emit method to gracefully handle
-    closed streams during shutdown - the most precise point to fix the issue.
+    Sets conservative log levels for HTTP client libraries to reduce verbosity
+    in normal operation. The actual handling of closed streams during shutdown
+    is now handled by code in conftest.py that runs earlier in the process.
     """
-    # First, silence the specific loggers responsible for most shutdown errors
-    for name in ["httpcore.connection", "httpcore.http11"]:
+    # Set appropriate log levels for HTTP libraries
+    http_libraries = [
+        "httpcore",
+        "httpcore.connection",
+        "httpcore.http11",
+        "httpx",
+        "urllib3",
+        "openai",
+    ]
+
+    # Use WARNING level for all HTTP libraries to reduce verbosity
+    for name in http_libraries:
         logging.getLogger(name).setLevel(logging.WARNING)
-
-    # Only patch once to avoid re-patching
-    if not hasattr(logging, "_ember_patched_handlers"):
-        # Store original method
-        original_emit = logging.StreamHandler.emit
-
-        # Create resilient version of emit that handles closed streams
-        def safe_emit(self, record):
-            """StreamHandler.emit that gracefully handles closed streams during shutdown."""
-            try:
-                original_emit(self, record)
-            except (ValueError, IOError, OSError) as e:
-                # Only suppress errors related to closed files during shutdown
-                if not (isinstance(e, ValueError) and "closed file" in str(e).lower()):
-                    if not (
-                        isinstance(e, (IOError, OSError)) and "closed" in str(e).lower()
-                    ):
-                        raise
-
-        # Apply patch
-        logging.StreamHandler.emit = safe_emit
-
-        # Mark as patched so we don't patch twice
-        logging._ember_patched_handlers = True
 
 
 def get_ember_logger(name: str) -> logging.Logger:
