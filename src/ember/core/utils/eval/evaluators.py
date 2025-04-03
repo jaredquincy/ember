@@ -410,7 +410,7 @@ class DiversityNoveltyEvaluator:
 
     def evaluate(
         self,
-        model: EmbeddingModel,
+        model: EmbeddingProviderModel,
         system_output: List[str],
         **kwargs
     ) -> EvaluationResult:
@@ -435,7 +435,7 @@ class DiversityNoveltyEvaluator:
 
     def compute_novelty(
         self,
-        model: EmbeddingModel,
+        model: EmbeddingProviderModel,
         response: str,
         prior_responses: List[str]
     ) -> float:
