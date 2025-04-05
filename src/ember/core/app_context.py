@@ -21,7 +21,7 @@ from ember.core.config.manager import ConfigManager, create_config_manager
 from ember.core.registry.model.base.registry.model_registry import ModelRegistry
 from ember.core.registry.model.base.services.usage_service import UsageService
 from ember.core.registry.model.initialization import initialize_registry
-from ember.core.utils.logging import configure_logging
+from ember.core.utils.ember_logging import configure_logging
 
 # Re-import for patching to work correctly
 import logging

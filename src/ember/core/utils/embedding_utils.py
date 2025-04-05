@@ -1,16 +1,18 @@
 from __future__ import annotations
 
-import math
 from abc import ABC, abstractmethod
 from typing import List, Protocol
+import numpy as np
 
-# TODO: Fix embedding model structure
-from ember.core.registry.model.base.services.model_service import ModelService
+from ember.core.registry.model.providers.provider_capability import (EmbeddingProviderModel,
+                                                                     EmbeddingResponse)
+from ember.core.registry.model.providers.openai.openai_provider import create_openai_embedding_model
 
 ################################################################
 # 1) Embedding Model Interfaces & Implementations
 ################################################################
 
+# NOTE: These protocols are now outdated by the EmbeddingProviderModel/CapabilityModel interfaces
 
 class EmbeddingModel(Protocol):
     """Interface for embedding models.
@@ -58,54 +60,6 @@ class MockEmbeddingModel:
         if not text:
             return []
         return [ord(ch) / 256.0 for ch in text]
-
-# TODO: Fix embedding model structure
-class Text_Embedding_Ada_002_Model:
-    """Interface for embedding models.
-
-    This protocol defines the minimal interface required to compute a text
-    embedding. Implementations may use local models, external APIs, or custom
-    neural networks.
-
-    Methods:
-        embed_text: Compute the embedding for a given text.
-    """
-    def __init__(self, llm: ModelService):
-        self.llm = llm
-
-    def embed_text(self, text: str) -> List[float]:
-        """Computes the embedding vector for the provided text.
-
-        Args:
-            text (str): The text to be embedded.
-
-        Returns:
-            List[float]: A list of floats representing the embedding vector.
-        """
-        response = self.llm(model_id="openai:text-embedding-ada-002", prompt=text)
-        return response.embedding
-
-class OpenAITextEmbedding3(Protocol):
-    """Interface for embedding models.
-
-    This protocol defines the minimal interface required to compute a text
-    embedding. Implementations may use local models, external APIs, or custom
-    neural networks.
-
-    Methods:
-        embed_text: Compute the embedding for a given text.
-    """
-
-    def embed_text(self, text: str) -> List[float]:
-        """Computes the embedding vector for the provided text.
-
-        Args:
-            text (str): The text to be embedded.
-
-        Returns:
-            List[float]: A list of floats representing the embedding vector.
-        """
-        
 
 ################################################################
 # 2) Similarity Metric Interface & Implementations
@@ -155,13 +109,16 @@ class CosineSimilarity(SimilarityMetric):
         if not vec_a or not vec_b:
             return 0.0
 
-        dot_product: float = sum(a * b for a, b in zip(vec_a, vec_b))
-        norm_a: float = math.sqrt(sum(a * a for a in vec_a))
-        norm_b: float = math.sqrt(sum(b * b for b in vec_b))
+        a = np.array(vec_a)
+        b = np.array(vec_b)
+
+        norm_a = np.linalg.norm(a)
+        norm_b = np.linalg.norm(b)
+
         if norm_a == 0 or norm_b == 0:
             return 0.0
 
-        return dot_product / (norm_a * norm_b)
+        return float(np.dot(a, b) / (norm_a * norm_b))
 
 
 ################################################################
@@ -170,7 +127,7 @@ class CosineSimilarity(SimilarityMetric):
 
 
 def calculate_text_similarity(
-    text1: str, text2: str, model: EmbeddingModel, metric: SimilarityMetric
+    text1: str, text2: str, model: EmbeddingProviderModel, metric: SimilarityMetric
 ) -> float:
     """Calculates text similarity using an embedding model and a similarity metric.
 
@@ -186,22 +143,27 @@ def calculate_text_similarity(
     Returns:
         float: The computed similarity score.
     """
-    embedding1: List[float] = model.embed_text(text=text1)
-    embedding2: List[float] = model.embed_text(text=text2)
-    return metric.similarity(vec_a=embedding1, vec_b=embedding2)
+    response1: EmbeddingResponse = model.embed_text(input_text=text1)
+    response2: EmbeddingResponse = model.embed_text(input_text=text2)
+    
+    embeddings1: List[float] = response1.embeddings
+    embeddings2: List[float] = response2.embeddings
+
+    return metric.similarity(vec_a=embeddings1, 
+                             vec_b=embeddings2)
 
 
 ################################################################
 # 4) Example Usage (Executable as Script)
 ################################################################
 if __name__ == "__main__":
-    mock_model: MockEmbeddingModel = MockEmbeddingModel()
-    cosine: CosineSimilarity = CosineSimilarity()
+    openai_embedding_model = create_openai_embedding_model()
+    cosine_simlarity = CosineSimilarity()
 
     text_a: str = "Hello world!"
     text_b: str = "Hello, world??"
 
     score: float = calculate_text_similarity(
-        text1=text_a, text2=text_b, model=mock_model, metric=cosine
+        text1=text_a, text2=text_b, model=openai_embedding_model, metric=cosine_simlarity
     )
     print(f"Similarity between '{text_a}' and '{text_b}': {score}")

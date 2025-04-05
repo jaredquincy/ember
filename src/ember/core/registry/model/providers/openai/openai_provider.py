@@ -71,10 +71,10 @@ For higher-level usage, prefer the model registry or API interfaces:
 """
 
 import logging
-from typing import Any, Dict, Final, List, Optional, cast
+from typing import Any, Dict, Final, List, Optional, cast, ClassVar
 
 import openai
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, ConfigDict, BaseModel
 from requests.exceptions import HTTPError
 from tenacity import retry, stop_after_attempt, wait_exponential
 
@@ -84,7 +84,7 @@ from ember.core.registry.model.base.schemas.chat_schemas import (
     ChatResponse,
     ProviderParams,
 )
-from ember.core.registry.model.base.schemas.model_info import ModelInfo
+from ember.core.registry.model.base.schemas.model_info import ModelInfo, ProviderInfo
 from ember.core.registry.model.base.utils.model_registry_exceptions import (
     InvalidPromptError,
     ProviderAPIError,
@@ -96,6 +96,15 @@ from ember.core.registry.model.providers.base_provider import (
 )
 from ember.plugin_system import provider
 
+from ember.core.registry.model.providers.provider_capability import (
+    EmbeddingRequest,
+    EmbeddingResponse,
+    EmbeddingProviderModel,
+    CompletionRequest,
+    CompletionResponse,
+    TextCompletionProviderModel,
+)
+import os
 
 class OpenAIProviderParams(ProviderParams):
     """OpenAI-specific provider parameters for fine-tuning API requests.
@@ -347,10 +356,6 @@ class OpenAIModel(BaseProviderModel):
             logger.debug("Removing 'temperature' parameter for model: %s", model_name)
             kwargs.pop("temperature")
         return kwargs
-    
-    # TODO: Fix embedding model structure
-    def _is_embedding_model(self, model_name: str) -> bool:
-        return model_name.startswith("text-embedding-")
 
     @retry(
         wait=wait_exponential(min=1, max=10), stop=stop_after_attempt(3), reraise=True
@@ -442,3 +447,283 @@ class OpenAIModel(BaseProviderModel):
                 message=f"API error: {str(exc)}",
                 cause=exc,
             )
+        
+class OpenAICompletionParameters(BaseModel):
+    """Parameter conversion for OpenAI, specifically text completion requests.
+
+    Handles parameter validation and conversion between Ember's universal format
+    and OpenAI's specific API requirements.
+
+    Attributes:
+        prompt: The text prompt to complete.
+        max_tokens: Maximum number of tokens to generate.
+        temperature: Controls randomness (0.0-2.0).
+        stop_sequences: Sequences that signal end of generation.
+    """
+
+    model_config = ConfigDict(
+        protected_namespaces=(),  # Disable Pydantic's protected namespace checks
+    )
+
+    prompt: str
+    max_tokens: Optional[int] = Field(default=50)
+    temperature: Optional[float] = Field(default=0.7, ge=0.0, le=2.0)
+    stop_sequences: Optional[List[str]] = None
+
+    def to_openai_kwargs(self) -> Dict[str, Any]:
+        """Converting parameters to OpenAI API format.
+
+        Returns:
+            Dictionary of parameters for the OpenAI API.
+        """
+        kwargs: Dict[str, Any] = {
+            "prompt": self.prompt,
+            "max_tokens": self.max_tokens,
+            "temperature": self.temperature,
+        }
+
+        if self.stop_sequences:
+            kwargs["stop"] = self.stop_sequences
+
+        return kwargs
+
+@provider("OpenAIExtended")
+class OpenAIExtendedModel(TextCompletionProviderModel, EmbeddingProviderModel):
+    """Extended OpenAI provider supporting chat, text completion, and embeddings.
+
+    This class implements a provider that supports multiple model types through 
+    capability interfaces.
+
+    Attributes:
+        PROVIDER_NAME: Provider name for registration with the plugin system.
+        CAPABILITIES: Capability flags showing supported model types.
+    """
+
+    PROVIDER_NAME: ClassVar[str] = "OpenAIExtended"
+    CAPABILITIES: ClassVar[Dict[str, bool]] = {
+        "chat": True,
+        "completion": True,
+        "embedding": True,
+    }
+
+    def create_client(self) -> Any:
+        """Creating and configuring the OpenAI client.
+
+        Retrieves the API key from the model information and configures the client.
+
+        Returns:
+            The configured OpenAI client.
+
+        Raises:
+            ProviderAPIError: If API key is missing or invalid.
+        """
+        import openai
+
+        api_key: Optional[str] = self.model_info.get_api_key()
+        if not api_key:
+            raise ProviderAPIError("OpenAI API key is missing or invalid.")
+
+        openai.api_key = api_key
+        return openai
+
+    def forward(self, request: ChatRequest) -> ChatResponse:
+        """Processing a chat request (implementing BaseProviderModel).
+
+        This method provides the standard chat functionality required by
+        the BaseProviderModel interface.
+
+        Args:
+            request: Chat request to process.
+
+        Returns:
+            Chat response from the model.
+
+        Raises:
+            InvalidPromptError: If prompt is empty.
+            ProviderAPIError: For unexpected errors during API calls.
+        """
+        # Implementation would match OpenAIModel's forward method
+        # This is a simplified placeholder
+        if not request.prompt:
+            raise InvalidPromptError("OpenAI prompt cannot be empty.")
+
+        # Implementation details would mirror the standard OpenAIModel
+        # Return placeholder
+        return ChatResponse(data="Chat implementation placeholder")
+
+    def complete(self, request: CompletionRequest) -> CompletionResponse:
+        """Processing a text completion request.
+
+        Implements text completion capabilities using the OpenAI completions API.
+
+        Args:
+            request: Text completion request.
+
+        Returns:
+            Completion response from the model.
+
+        Raises:
+            InvalidPromptError: If prompt is empty.
+            ProviderAPIError: For unexpected errors during API calls.
+        """
+        if not request.prompt:
+            raise InvalidPromptError("OpenAI completion prompt cannot be empty.")
+
+        logger.info(
+            "OpenAI completion invoked",
+            extra={
+                "provider": self.PROVIDER_NAME,
+                "model_name": self.model_info.name,
+                "prompt_length": len(request.prompt),
+            },
+        )
+
+        # Convert universal parameters to OpenAI format
+        openai_parameters = OpenAICompletionParameters(
+            prompt=request.prompt,
+            max_tokens=request.max_tokens,
+            temperature=request.temperature,
+            stop_sequences=request.stop_sequences,
+        )
+        openai_kwargs = openai_parameters.to_openai_kwargs()
+
+        # Add provider-specific parameters
+        provider_params = cast(OpenAICompletionParameters, request.provider_params)
+        openai_kwargs.update(
+            {k: v for k, v in provider_params.items() if v is not None}
+        )
+
+        try:
+            # Request timeout from parameters or default
+            timeout = openai_kwargs.pop("timeout", 30)
+
+            # Make the API call
+            response = self.client.completions.create(
+                model=self.model_info.name,
+                timeout=timeout,
+                **openai_kwargs,
+            )
+
+            # Extract completion text
+            text = response.choices[0].text.strip()
+
+            # Calculate usage statistics
+            # For simplicity, we assume a usage calculator is implemented elsewhere
+            usage_stats = (
+                None  # self.usage_calculator.calculate(response, self.model_info)
+            )
+
+            return CompletionResponse(
+                text=text,
+                raw_output=response,
+                usage=usage_stats,
+            )
+
+        except Exception as exc:
+            logger.exception("Unexpected error in OpenAIExtendedModel.complete()")
+            raise ProviderAPIError(str(exc)) from exc
+
+    def embed(self, request: EmbeddingRequest) -> EmbeddingResponse:
+        """Generating embeddings for the input text(s).
+
+        Implements embedding capabilities using the OpenAI embeddings API.
+
+        Args:
+            request: Embedding request with input text(s).
+
+        Returns:
+            Embedding response with vector representations.
+
+        Raises:
+            InvalidPromptError: If input is empty.
+            ProviderAPIError: For unexpected errors during API calls.
+        """
+        # Use the provided model or default to the model in model_info
+        model_name = request.model or self.model_info.name
+
+        input_text = request.input
+        if not input_text:
+            raise InvalidPromptError("Input text for embeddings cannot be empty.")
+
+        logger.info(
+            "OpenAI embeddings invoked",
+            extra={
+                "provider": self.PROVIDER_NAME,
+                "model_name": model_name,
+                "input_type": "batch" if isinstance(input_text, list) else "single",
+            },
+        )
+
+        try:
+            # Make the API call
+            response = self.client.embeddings.create(
+                model=model_name,
+                input=input_text,
+                timeout=30,
+            )
+
+            # Extract embeddings
+            if isinstance(input_text, list):
+                print(f"batch processing")
+                # For batch processing
+                embeddings = [item.embedding for item in response.data]
+            else:
+                # For single text input
+                embeddings = response.data[0].embedding
+
+            # Get dimensions from the first embedding
+            if isinstance(embeddings, list) and isinstance(embeddings[0], list):
+                dimensions = len(embeddings[0])
+            else:
+                dimensions = len(embeddings)
+
+            # Calculate usage statistics (implementation would depend on your system)
+            usage_stats = (
+                None  # self.usage_calculator.calculate(response, self.model_info)
+            )
+
+            return EmbeddingResponse(
+                embeddings=embeddings,
+                model=model_name,
+                dimensions=dimensions,
+                raw_output=response,
+                usage=usage_stats,
+            )
+
+        except Exception as exc:
+            logger.exception("Unexpected error in OpenAIExtendedModel.embed()")
+            raise ProviderAPIError(str(exc)) from exc
+
+
+def create_openai_embedding_model(model_name: str = "text-embedding-ada-002") -> OpenAIExtendedModel:
+    """
+    Tool for creating an OpenAI embedding model by passing the embedding model name.
+
+    Args:
+        model_name: Name of particular embedding model endpoint as specified by the OpenAI API
+
+    Returns:
+        OpenAIExtendedModel initialized to serve model_name; None if model could not 
+        be created
+
+    Raises:
+        InvalidPromptError: If input is empty.
+        ProviderAPIError: For unexpected errors during API calls.
+    """
+    # All OpenAI embedding models contain "text-embedding" in their model name
+    if "text-embedding" not in model_name:
+        return None
+
+    model_info = ModelInfo(
+        id="openai:gpt-4o",
+        name=model_name,
+        provider=ProviderInfo(
+                    name="OpenAI",
+                    default_api_key=os.environ.get("OPENAI_API_KEY"),
+                    base_url="https://api.openai.com/v1",
+                )
+    )
+
+    embedding_model = OpenAIExtendedModel(model_info)
+
+    return embedding_model
