@@ -115,6 +115,6 @@ class ChatResponse(BaseModel):
     """
 
     data: str
-    embedding: list[float] = None   # TODO: Fix embedding model structure
+    embedding: list[float] = None
     raw_output: Any = None
     usage: Optional[UsageStats] = None
