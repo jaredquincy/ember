@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import subprocess
-from typing import Any, Callable, Generic, Optional, TypeVar
+from typing import Any, List, Callable, Generic, Optional, TypeVar
 
 from .base_evaluator import EvaluationResult, IEvaluator
 from .extractors import RegexExtractor
@@ -197,10 +197,6 @@ class CodeExecutionEvaluator(IEvaluator[str, str]):
                 score=0.0,
                 metadata={"error": f"{type(error).__name__}: {str(error)}"},
             )
-
-
-# Composite Evaluator Example
-
 
 class MultipleChoiceEvaluator(IEvaluator[str, str]):
     """Evaluator to check if a system output contains the correct multiple-choice answer.

@@ -12,11 +12,11 @@ The design follows standard Python logging best practices:
 
 Usage:
     # To apply standard configuration with reduced verbosity:
-    from ember.core.utils.logging import configure_logging
+    from ember.core.utils.ember_logging import configure_logging
     configure_logging(verbose=False)
 
     # To adjust specific component verbosity:
-    from ember.core.utils.logging import set_component_level
+    from ember.core.utils.ember_logging import set_component_level
     set_component_level("model_discovery", logging.DEBUG)
 """
 

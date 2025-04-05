@@ -12,6 +12,13 @@ from .evaluators import (
     NumericToleranceEvaluator,
     PartialRegexEvaluator,
 )
+from .diversity_evaluators import (
+    DiversityEnsembledEvaluator,
+    DiversityCosineSimilarityEvaluator,
+    DiversityEditDistanceEvaluator,
+    DiversityCompressionEvaluator,
+    DiversityNoveltyEvaluator,
+)
 from .pipeline import (
     BatchEvaluationSummary,
     PipelineEvaluator,
