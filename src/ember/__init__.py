@@ -145,7 +145,7 @@ def initialize_ember(
         model = registry.get_model("openai:gpt-4")
     """
     # Import here to avoid circular imports
-    from ember.core.utils.logging import configure_logging
+    from ember.core.utils.ember_logging import configure_logging
     from ember.core.config.manager import create_config_manager
 
     # 0. Configure logging first

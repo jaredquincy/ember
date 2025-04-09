@@ -219,7 +219,7 @@ def create_pipeline(*, model_name: str = "gpt-4o") -> non.Sequential:
 
 if __name__ == "__main__":
     # Use the centralized logging configuration with reduced verbosity
-    from ember.core.utils.logging import configure_logging
+    from ember.core.utils.ember_logging import configure_logging
     from ember.xcs.engine.execution_options import set_execution_options
 
     configure_logging(verbose=False)
